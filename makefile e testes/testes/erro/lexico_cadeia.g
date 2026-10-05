@@ -1,0 +1,3 @@
+principal {
+    escreva "abc;
+}
