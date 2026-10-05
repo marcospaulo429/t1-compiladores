@@ -1,0 +1,5 @@
+# arquivos gerados pelo flex, bison e gcc
+g-v1.tab.c
+g-v1.tab.h
+lex.yy.c
+g-v1
