@@ -11,7 +11,7 @@
 %x COMENTARIO
 
 %%
-    /* Seção de regras */
+ /* Seção de regras */
 [ \t\r\n]+ {
     /* descarta */
 }
@@ -31,7 +31,7 @@
 }
 
 <COMENTARIO><<EOF>> {
-    printf("ERRO: COMENTARIO NAO TERMINA %d\n", yylineno);
+    printf("ERRO: COMENTÁRIO NAO TERMINA %d\n", yylineno);
     exit(1);
 }
 
@@ -166,7 +166,7 @@
 }
 
 
-[+-]?[0-9]+ {
+[0-9]+ {
     return INTCONST;
 }
 
@@ -184,15 +184,13 @@
 }
 
 
-\"[^\"\n]* {
-    printf("ERRO: CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA %d\n",
-           yylineno);
+\"[^\"\n]*\n {
+    printf("ERRO: CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA %d\n", yylineno);
     exit(1);
 }
 
 . {
-    printf("ERRO: CARACTERE INVALIDO %s %d\n",
-           yytext, yylineno);
+    printf("ERRO: CARACTERE INVÁLIDO %d\n", yylineno);
     exit(1);
 }
 
