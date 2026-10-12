@@ -1,3 +1,4 @@
+    /* Seção de definições */
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,30 @@
 %x COMENTARIO
 
 %%
+    /* Seção de regras */
+[ \t\r\n]+ {
+    /* descarta */
+}
+
+"/*" {
+    BEGIN(COMENTARIO);
+}
+
+<COMENTARIO>"*/" {
+    BEGIN(INITIAL);
+}
+
+<COMENTARIO>\n {
+}
+
+<COMENTARIO>. {
+}
+
+<COMENTARIO><<EOF>> {
+    printf("ERRO: COMENTARIO NAO TERMINA %d\n", yylineno);
+    exit(1);
+}
+
 
 "principal" {
     return PRINCIPAL;
@@ -55,12 +80,9 @@
     return ENQUANTO;
 }
 
+
 "||" {
     return OU;
-}
-
-"&" {
-    return E;
 }
 
 "==" {
@@ -79,42 +101,8 @@
     return MENORIGUAL;
 }
 
-[+-]?[0-9]+ {
-    return INTCONST;
-}
-
-\'([^\\\n']|\\.)\' {
-    return CARCONST;
-}
-
-\"([^\\\n\"]|\\.)*\" {
-    return CADEIACARACTERES;
-}
-
-"/*" {
-    BEGIN(COMENTARIO);
-}
-
-<COMENTARIO>"*/" {
-    BEGIN(INITIAL);
-}
-
-<COMENTARIO>\n {
-}
-
-<COMENTARIO>. {
-}
-
-<COMENTARIO><<EOF>> {
-    printf("ERRO: COMENTARIO NAO TERMINA %d\n", yylineno);
-    exit(1);
-}
-
-[A-Za-z_][A-Za-z0-9_]* {
-    return IDENTIFICADOR;
-}
-
-[ \t\r\n]+ {
+"&" {
+    return E;
 }
 
 "{" {
@@ -177,6 +165,25 @@
     return '!';
 }
 
+
+[+-]?[0-9]+ {
+    return INTCONST;
+}
+
+\'([^\\\n']|\\.)\' {
+    return CARCONST;
+}
+
+\"([^\\\n\"]|\\.)*\" {
+    return CADEIACARACTERES;
+}
+
+
+[A-Za-z_][A-Za-z0-9_]* {
+    return IDENTIFICADOR;
+}
+
+
 \"[^\"\n]* {
     printf("ERRO: CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA %d\n",
            yylineno);
@@ -190,3 +197,4 @@
 }
 
 %%
+    /* seção de código */
