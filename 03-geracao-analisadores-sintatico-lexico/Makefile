@@ -22,6 +22,11 @@ test: g-v1
 		echo "Executando: $$arq"; \
 		./g-v1 $$arq || exit 1; \
 	done
+	@echo "\n=== TESTANDO ERROS LÉXICOS (devem acusar ERRO) ==="
+	@for arq in $(TEST_DIR)/ErroLexico/*.g; do \
+		echo "Executando: $$arq"; \
+		./g-v1 $$arq || true; \
+	done
 	@echo "\n=== TESTANDO ERROS SINTATICOS (devem acusar ERRO) ==="
 	@for arq in $(TEST_DIR)/ErroSintatico/*.g; do \
 		echo "Executando: $$arq"; \
