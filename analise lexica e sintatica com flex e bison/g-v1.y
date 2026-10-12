@@ -1,6 +1,6 @@
 %{
+/* Declarações em linguagem C */
 #include <stdio.h>
-#include <stdlib.h>
 
 extern int yylineno;
 extern char *yytext;
@@ -9,9 +9,8 @@ extern FILE *yyin;
 
 void yyerror(const char *s);
 %}
-
+/* Definições */
 /* Tokens da linguagem G-V1 */
-
 %token PRINCIPAL
 %token IDENTIFICADOR
 
@@ -29,8 +28,6 @@ void yyerror(const char *s);
 %token ENQUANTO
 
 %token CADEIACARACTERES
-%token CARCONST
-%token INTCONST
 
 %token OU
 %token E
@@ -39,143 +36,97 @@ void yyerror(const char *s);
 %token MAIORIGUAL
 %token MENORIGUAL
 
+%token CARCONST
+%token INTCONST
 %%
-
-/* ---------------------------------------------------------
-   Programa
-   --------------------------------------------------------- */
-
-Programa
-    : DeclPrograma
+/* Produções da gramática */
+Programa    : DeclPrograma
     ;
 
-DeclPrograma
-    : PRINCIPAL Bloco
+DeclPrograma: PRINCIPAL Bloco
     ;
 
-
-/* ---------------------------------------------------------
-   Bloco
-   --------------------------------------------------------- */
-
-Bloco
-    : '{' ListaComando '}'
-    | VarSection '{' ListaComando '}'
+Bloco       : '{' ListaComando '}'
+                | VarSection '{' ListaComando '}'
     ;
 
-
-/* ---------------------------------------------------------
-   Declaração de variáveis
-   --------------------------------------------------------- */
-
-VarSection
-    : '{' ListaDeclVar '}'
+VarSection  : '{' ListaDeclVar '}'
     ;
 
-ListaDeclVar
-    : IDENTIFICADOR DeclVar ':' Tipo ';' ListaDeclVar
-    | IDENTIFICADOR DeclVar ':' Tipo ';'
+ListaDeclVar: IDENTIFICADOR DeclVar ':' Tipo ';' ListaDeclVar
+                | IDENTIFICADOR DeclVar ':' Tipo ';'
     ;
 
-DeclVar
-    : /* vazio */
-    | ',' IDENTIFICADOR DeclVar
+DeclVar     : /* Cadeia Vazia */
+                | ',' IDENTIFICADOR DeclVar
     ;
 
-Tipo
-    : INT
-    | CAR
+Tipo        : INT
+                | CAR
     ;
 
-
-/* ---------------------------------------------------------
-   Lista de comandos
-   --------------------------------------------------------- */
-
-ListaComando
-    : Comando
-    | Comando ListaComando
+ListaComando: Comando
+                | Comando ListaComando
     ;
 
-
-/* ---------------------------------------------------------
-   Comandos
-   --------------------------------------------------------- */
-
-Comando
-    : ';'
-    | Expr ';'
-    | LEIA IDENTIFICADOR ';'
-    | ESCREVA Expr ';'
-    | ESCREVA CADEIACARACTERES ';'
-    | NOVALINHA ';'
-    | SE '(' Expr ')' ENTAO Comando FIMSE
-    | SE '(' Expr ')' ENTAO Comando SENAO Comando FIMSE
-    | ENQUANTO '(' Expr ')' Comando
-    | Bloco
+Comando     : ';'
+                | Expr ';'
+                | LEIA IDENTIFICADOR ';'
+                | ESCREVA Expr ';'
+                | ESCREVA CADEIACARACTERES ';'
+                | NOVALINHA ';'
+                | SE '(' Expr ')' ENTAO Comando FIMSE
+                | SE '(' Expr ')' ENTAO Comando SENAO Comando FIMSE
+                | ENQUANTO '(' Expr ')' Comando
+                | Bloco
     ;
 
-
-/* ---------------------------------------------------------
-   Expressões
-   --------------------------------------------------------- */
-
-Expr
-    : OrExpr
-    | IDENTIFICADOR '=' Expr
+Expr        : OrExpr
+                | IDENTIFICADOR '=' Expr
     ;
 
-OrExpr
-    : OrExpr OU AndExpr
-    | AndExpr
+OrExpr      : OrExpr OU AndExpr
+                | AndExpr
     ;
 
-AndExpr
-    : AndExpr E EqExpr
-    | EqExpr
+AndExpr     : AndExpr E EqExpr
+                | EqExpr
     ;
 
-EqExpr
-    : EqExpr IGUAL DesigExpr
-    | EqExpr DIFERENTE DesigExpr
-    | DesigExpr
+EqExpr      : EqExpr IGUAL DesigExpr
+                | EqExpr DIFERENTE DesigExpr
+                | DesigExpr
     ;
 
-DesigExpr
-    : DesigExpr '<' AddExpr
-    | DesigExpr '>' AddExpr
-    | DesigExpr MAIORIGUAL AddExpr
-    | DesigExpr MENORIGUAL AddExpr
-    | AddExpr
+DesigExpr   : DesigExpr '<' AddExpr
+                | DesigExpr '>' AddExpr
+                | DesigExpr MAIORIGUAL AddExpr
+                | DesigExpr MENORIGUAL AddExpr
+                | AddExpr
     ;
 
-AddExpr
-    : AddExpr '+' MulExpr
-    | AddExpr '-' MulExpr
-    | MulExpr
+AddExpr     : AddExpr '+' MulExpr
+                | AddExpr '-' MulExpr
+                | MulExpr
     ;
 
-MulExpr
-    : MulExpr '*' UnExpr
-    | MulExpr '/' UnExpr
-    | UnExpr
+MulExpr     : MulExpr '*' UnExpr
+                | MulExpr '/' UnExpr
+                | UnExpr
     ;
 
-UnExpr
-    : '-' PrimExpr
-    | '!' PrimExpr
-    | PrimExpr
+UnExpr      : '-' PrimExpr
+                | '!' PrimExpr
+                | PrimExpr
     ;
 
-PrimExpr
-    : IDENTIFICADOR
-    | CARCONST
-    | INTCONST
-    | '(' Expr ')'
+PrimExpr    : IDENTIFICADOR
+                | CARCONST
+                | INTCONST
+                | '(' Expr ')'
     ;
-
 %%
-
+/* Funções do usuário escritas em C */
 void yyerror(const char *s)
 {
     fprintf(stderr, "ERRO: %s linha %d\n", s, yylineno);
@@ -189,15 +140,12 @@ int main(int argc, char **argv)
     }
 
     yyin = fopen(argv[1], "r");
-
     if (yyin == NULL) {
         perror("Erro ao abrir arquivo");
         return 1;
     }
-
     int resultado = yyparse();
 
     fclose(yyin);
-
     return resultado;
 }
