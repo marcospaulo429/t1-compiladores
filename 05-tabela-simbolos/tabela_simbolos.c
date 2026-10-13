@@ -2,199 +2,127 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "symble_table.h"
+#include "tabela_simbolos.h"
 
+static unsigned int funcaoHash(const char * str) {
+    unsigned int hash = 5381;
+    int c;
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c;
+    }
+    return hash % TAM_HASH;
+}
 
-static SymbolTable *create_table(void)
-{
-    SymbolTable *table = malloc(sizeof(SymbolTable));
+PilhaTabelas * iniciarPilha(void) {
+    PilhaTabelas * pilha = (PilhaTabelas *) malloc(sizeof(PilhaTabelas));
+    if (!pilha) {
+        fprintf(stderr, "ERRO: memoria insuficiente\n");
+        exit(1);
+    }
+    pilha->topo = NULL;
+    return pilha;
+}
 
-    if (table == NULL) {
+void empilharTabela(PilhaTabelas * pilha) {
+    if (!pilha) return;
+
+    TabelaSimbolos * tabela = (TabelaSimbolos *) malloc(sizeof(TabelaSimbolos));
+    if (!tabela) {
         fprintf(stderr, "ERRO: memoria insuficiente\n");
         exit(1);
     }
 
-    table->symbols = NULL;
-    table->next = NULL;
-
-    return table;
-}
-
-
-static Symbol *create_symbol(
-    const char *name,
-    ValueType type,
-    int line
-)
-{
-    Symbol *symbol = malloc(sizeof(Symbol));
-
-    if (symbol == NULL) {
-        fprintf(stderr, "ERRO: memoria insuficiente\n");
-        exit(1);
+    for (int i = 0; i < TAM_HASH; i++) {
+        tabela->baldes[i] = NULL;
     }
 
-    symbol->name = malloc(strlen(name) + 1);
-
-    if (symbol->name == NULL) {
-        fprintf(stderr, "ERRO: memoria insuficiente\n");
-
-        free(symbol);
-
-        exit(1);
-    }
-
-    strcpy(symbol->name, name);
-
-    symbol->type = type;
-    symbol->line = line;
-
-    /*
-     * Ainda não estamos fazendo geração
-     * de código.
-     */
-    symbol->offset = 0;
-    symbol->size = 0;
-
-    symbol->next = NULL;
-
-    return symbol;
+    tabela->anterior = pilha->topo;
+    pilha->topo = tabela;
 }
 
+void desempilharTabela(PilhaTabelas * pilha) {
+    if (!pilha || !pilha->topo) return;
 
-void symbol_table_init(SymbolTableStack *stack)
-{
-    stack->top = NULL;
-}
+    TabelaSimbolos * tabela = pilha->topo;
+    pilha->topo = tabela->anterior;
 
-
-void symbol_table_push(SymbolTableStack *stack)
-{
-    SymbolTable *table = create_table();
-
-    table->next = stack->top;
-
-    stack->top = table;
-}
-
-
-void symbol_table_pop(SymbolTableStack *stack)
-{
-    if (stack == NULL || stack->top == NULL) {
-        return;
-    }
-
-    SymbolTable *table = stack->top;
-
-    stack->top = table->next;
-
-
-    Symbol *symbol = table->symbols;
-
-    while (symbol != NULL) {
-
-        Symbol *next = symbol->next;
-
-        free(symbol->name);
-        free(symbol);
-
-        symbol = next;
-    }
-
-    free(table);
-}
-
-
-Symbol *symbol_table_lookup_current(
-    SymbolTableStack *stack,
-    const char *name
-)
-{
-    if (stack == NULL || stack->top == NULL) {
-        return NULL;
-    }
-
-    Symbol *current = stack->top->symbols;
-
-    while (current != NULL) {
-
-        if (strcmp(current->name, name) == 0) {
-            return current;
+    for (int i = 0; i < TAM_HASH; i++) {
+        Simbolo * s = tabela->baldes[i];
+        while (s != NULL) {
+            Simbolo * prox = s->prox;
+            free(s->nome);
+            free(s);
+            s = prox;
         }
-
-        current = current->next;
     }
+    free(tabela);
+}
 
+Simbolo * pesquisarNoEscopoAtual(PilhaTabelas * pilha, const char * nome) {
+    if (!pilha || !pilha->topo || !nome) return NULL;
+
+    unsigned int h = funcaoHash(nome);
+    Simbolo * s = pilha->topo->baldes[h];
+
+    while (s != NULL) {
+        if (strcmp(s->nome, nome) == 0) {
+            return s;
+        }
+        s = s->prox;
+    }
     return NULL;
 }
 
+Simbolo * pesquisarNome(PilhaTabelas * pilha, const char * nome) {
+    if (!pilha || !nome) return NULL;
 
-Symbol *symbol_table_lookup(
-    SymbolTableStack *stack,
-    const char *name
-)
-{
-    if (stack == NULL) {
-        return NULL;
-    }
+    unsigned int h = funcaoHash(nome);
+    TabelaSimbolos * tabela = pilha->topo;
 
-    SymbolTable *table = stack->top;
-
-    while (table != NULL) {
-
-        Symbol *symbol = table->symbols;
-
-        while (symbol != NULL) {
-
-            if (strcmp(symbol->name, name) == 0) {
-                return symbol;
+    while (tabela != NULL) {
+        Simbolo * s = tabela->baldes[h];
+        while (s != NULL) {
+            if (strcmp(s->nome, nome) == 0) {
+                return s;
             }
-
-            symbol = symbol->next;
+            s = s->prox;
         }
-
-        table = table->next;
+        tabela = tabela->anterior;
     }
-
     return NULL;
 }
 
+int inserirSimbolo(PilhaTabelas * pilha, const char * nome, TipoDado tipo, int linha) {
+    if (!pilha || !pilha->topo || !nome) return 0;
 
-int symbol_table_insert(
-    SymbolTableStack *stack,
-    const char *name,
-    ValueType type,
-    int line
-)
-{
-    if (stack == NULL || stack->top == NULL) {
-        return 0;
+    if (pesquisarNoEscopoAtual(pilha, nome) != NULL) return 0;
+
+    unsigned int h = funcaoHash(nome);
+    Simbolo * novo = (Simbolo *) malloc(sizeof(Simbolo));
+    if (!novo) {
+        fprintf(stderr, "ERRO: memoria insuficiente\n");
+        exit(1);
     }
 
-    /*
-     * Só verificamos duplicação no escopo atual.
-     */
-    if (symbol_table_lookup_current(stack, name) != NULL) {
-        return 0;
+    novo->nome = strdup(nome);
+    if(!novo->nome) {
+        free(novo);
+        fprintf(stderr, "ERRO: memoria insuficiente\n");
+        exit(1);
     }
 
-    Symbol *symbol = create_symbol(name, type, line);
-
-    symbol->next = stack->top->symbols;
-
-    stack->top->symbols = symbol;
+    novo->tipo = tipo;
+    novo->linha = linha;
+    novo->prox = pilha->topo->baldes[h];
+    pilha->topo->baldes[h] = novo;
 
     return 1;
 }
 
-
-void symbol_table_destroy(SymbolTableStack *stack)
-{
-    if (stack == NULL) {
-        return;
+void destruirPilha(PilhaTabelas * pilha) {
+    if (!pilha) return;
+    while (pilha->topo != NULL) {
+        desempilharTabela(pilha);
     }
-
-    while (stack->top != NULL) {
-        symbol_table_pop(stack);
-    }
+    free(pilha);
 }
