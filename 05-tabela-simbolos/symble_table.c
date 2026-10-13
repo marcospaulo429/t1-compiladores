@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "symbol_table.h"
+#include "symble_table.h"
 
 
 static SymbolTable *create_table(void)
