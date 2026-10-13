@@ -2,6 +2,8 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "tipos.h"
 #include "g-v1.tab.h"
 %}
 
@@ -36,150 +38,58 @@
 }
 
 
-"principal" {
-    return PRINCIPAL;
-}
+"principal" { return PRINCIPAL; }
+"int"       { return INT; }
+"car"       { return CAR; }
+"leia"      { return LEIA; }
+"escreva"   { return ESCREVA; }
+"novalinha" { return NOVALINHA; }
+"se"        { return SE; }
+"entao"     { return ENTAO; }
+"senao"     { return SENAO; }
+"fimse"     { return FIMSE; }
+"enquanto"  { return ENQUANTO; }
 
-"int" {
-    return INT;
-}
+"||"        { return OU; }
+"=="        { return IGUAL; }
+"!="        { return DIFERENTE; }
+">="        { return MAIORIGUAL; }
+"&"         { return E; }
 
-"car" {
-    return CAR;
-}
-
-"leia" {
-    return LEIA;
-}
-
-"escreva" {
-    return ESCREVA;
-}
-
-"novalinha" {
-    return NOVALINHA;
-}
-
-"se" {
-    return SE;
-}
-
-"entao" {
-    return ENTAO;
-}
-
-"senao" {
-    return SENAO;
-}
-
-"fimse" {
-    return FIMSE;
-}
-
-"enquanto" {
-    return ENQUANTO;
-}
-
-
-"||" {
-    return OU;
-}
-
-"==" {
-    return IGUAL;
-}
-
-"!=" {
-    return DIFERENTE;
-}
-
-">=" {
-    return MAIORIGUAL;
-}
-
-"<=" {
-    return MENORIGUAL;
-}
-
-"&" {
-    return E;
-}
-
-"{" {
-    return '{';
-}
-
-"}" {
-    return '}';
-}
-
-"(" {
-    return '(';
-}
-
-")" {
-    return ')';
-}
-
-"," {
-    return ',';
-}
-
-":" {
-    return ':';
-}
-
-";" {
-    return ';';
-}
-
-"+" {
-    return '+';
-}
-
-"-" {
-    return '-';
-}
-
-"*" {
-    return '*';
-}
-
-"/" {
-    return '/';
-}
-
-"<" {
-    return '<';
-}
-
-">" {
-    return '>';
-}
-
-"=" {
-    return '=';
-}
-
-"!" {
-    return '!';
-}
-
+"<="        { return MENORIGUAL; }
+"{"         { return '{'; }
+"}"         { return '}'; }
+"("         { return '('; }
+")"         { return ')'; }
+","         { return ','; }
+":"         { return ':'; }
+";"         { return ';'; }
+"+"         { return '+'; }
+"-"         { return '-'; }
+"*"         { return '*'; }
+"/"         { return '/'; }
+"<"         { return '<'; }
+">"         { return '>'; }
+"="         { return '='; }
+"!"         { return '!'; }
 
 [0-9]+ {
+    yylval.numlexema = strdup(yytext);
     return INTCONST;
 }
 
 \'([^\\\n']|\\.)\' {
+    yylval.numlexema = strdup(yytext);
     return CARCONST;
 }
 
 \"([^\\\n\"]|\\.)*\" {
+    yylval.numlexema = strdup(yytext);
     return CADEIACARACTERES;
 }
 
-
 [A-Za-z_][A-Za-z0-9_]* {
+    yylval.numlexema = strdup(yytext);
     return IDENTIFICADOR;
 }
 
