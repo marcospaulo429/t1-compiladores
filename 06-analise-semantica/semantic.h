@@ -1,8 +1,8 @@
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
 
-#include "ast.h"
-#include "symble_table.h"
+#include "tipos.h"
+#include "tabela_simbolos.h"
 
 
 /*
