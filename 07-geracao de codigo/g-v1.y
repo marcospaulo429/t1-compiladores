@@ -1,1203 +1,339 @@
 %{
+/* Declarações em linguagem C */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-
-#include "ast.h"
-#include "semantic.h"
-#include "codegen.h"
-
+#include "tipos.h"
+#include "tabela_simbolos.h"
+#include "semantico.h"
 
 extern int yylineno;
 extern char *yytext;
 extern int yylex(void);
 extern FILE *yyin;
 
+void yyerror(const char *s);
 
-void yyerror(
-    const char *s
-);
+Toperador * criaOperador(TespecieOperador tipoOperador, int linha, Toperador * filho1, Toperador * filho2, Toperador * filho3, char * lexema);
+void percorreArvore(Toperador * raiz);
+void obtemEspecieNoEnumLin(Toperador* no, char* nomeOperador);
 
+void testaTabelaSimbolosAST(Toperador *no, PilhaTabelas *pilha);
 
-/*
- * Raiz da AST.
- */
-
-ASTNode *ast_root = NULL;
-
+Toperador * raiz = NULL;
+char nomeOperador[200];
 %}
 
-
-/*
- * Ativa informações de localização.
- */
-
-%locations
-
-
-/*
- * União de valores semânticos.
- *
- * struct ASTNode * pode ser usado aqui
- * sem conhecer a definição completa da struct
- * no arquivo .tab.h gerado pelo Bison.
- */
-
+/* Definições */
 %union {
-
-    char *str;
-
-    struct ASTNode *node;
-
-    int type;
-
+    int nlinha;
+    Toperador * Tpont;
+    char * numlexema;
 }
 
+/* Tokens com atributos semânticos */
+%token <numlexema> IDENTIFICADOR
+%token <numlexema> INTCONST
+%token <numlexema> CARCONST
+%token <numlexema> CADEIACARACTERES
 
-/* =========================================================
-   TOKENS
-   ========================================================= */
-
+/* Tokens simples */
 %token PRINCIPAL
+%token INT CAR
+%token LEIA ESCREVA NOVALINHA
+%token SE ENTAO SENAO FIMSE ENQUANTO
+%token OU E IGUAL DIFERENTE MAIORIGUAL MENORIGUAL
 
-%token INT
-%token CAR
-
-%token LEIA
-%token ESCREVA
-%token NOVALINHA
-
-%token SE
-%token ENTAO
-%token SENAO
-%token FIMSE
-%token ENQUANTO
-
-%token OU
-%token E
-%token IGUAL
-%token DIFERENTE
-%token MAIORIGUAL
-%token MENORIGUAL
-
-
-/*
- * Tokens que possuem lexema.
- */
-
-%token <str> IDENTIFICADOR
-
-%token <str> CADEIACARACTERES
-
-%token <str> CARCONST
-
-%token <str> INTCONST
-
-
-/* =========================================================
-   TIPOS DOS NÃO-TERMINAIS
-   ========================================================= */
-
-%type <node> Programa
-
-%type <node> DeclPrograma
-
-%type <node> Bloco
-
-%type <node> VarSection
-
-%type <node> ListaDeclVar
-
-%type <node> DeclVar
-
-%type <type> Tipo
-
-%type <node> ListaComando
-
-%type <node> Comando
-
-%type <node> Expr
-
-%type <node> OrExpr
-
-%type <node> AndExpr
-
-%type <node> EqExpr
-
-%type <node> DesigExpr
-
-%type <node> AddExpr
-
-%type <node> MulExpr
-
-%type <node> UnExpr
-
-%type <node> PrimExpr
-
-
+/* Não-terminais */
+%type <Tpont> Programa DeclPrograma Bloco VarSection ListaDeclVar DeclVar Tipo
+%type <Tpont> ListaComando Comando Expr OrExpr AndExpr EqExpr DesigExpr AddExpr MulExpr UnExpr PrimExpr
 %%
-
-
-/* =========================================================
-   PROGRAMA
-   ========================================================= */
-
-Programa
-    : DeclPrograma
-      {
-          /*
-           * Criamos o nó raiz.
-           */
-
-          $$ =
-              ast_new(
-                  AST_PROGRAM,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          ast_add_child(
-              $$,
-              $1
-          );
-
-
-          ast_root =
-              $$;
-      }
+/* Produções da gramática */
+Programa    : DeclPrograma  { raiz = $1; $$ = $1; }
     ;
 
-
-DeclPrograma
-    : PRINCIPAL Bloco
-      {
-          /*
-           * O único elemento do programa
-           * é o bloco principal.
-           */
-
-          $$ =
-              $2;
-      }
+DeclPrograma: PRINCIPAL Bloco   { $$ = criaOperador(noProg, yylineno, $2, NULL, NULL, NULL); }
     ;
 
-
-/* =========================================================
-   BLOCO
-   ========================================================= */
-
-Bloco
-    : '{' ListaComando '}'
-      {
-          $$ =
-              ast_new(
-                  AST_BLOCK,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          ASTNode *lista =
-              ast_new(
-                  AST_COMMAND_LIST,
-                  @2.first_line,
-                  NULL
-              );
-
-
-          ast_add_child_list(
-              lista,
-              $2
-          );
-
-
-          ast_add_child(
-              $$,
-              lista
-          );
-      }
-
-
-    | VarSection '{' ListaComando '}'
-      {
-          $$ =
-              ast_new(
-                  AST_BLOCK,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          /*
-           * Primeiro ficam as declarações.
-           */
-
-          ast_add_child(
-              $$,
-              $1
-          );
-
-
-          /*
-           * Depois fica a lista de comandos.
-           */
-
-          ASTNode *lista =
-              ast_new(
-                  AST_COMMAND_LIST,
-                  @3.first_line,
-                  NULL
-              );
-
-
-          ast_add_child_list(
-              lista,
-              $3
-          );
-
-
-          ast_add_child(
-              $$,
-              lista
-          );
-      }
+Bloco       : '{' ListaComando '}'  { $$ = criaOperador(noBloco, yylineno, NULL, $2, NULL, NULL); }
+                | VarSection '{' ListaComando '}'   {$$ = criaOperador(noBloco, yylineno, $1, $3, NULL, NULL); }
     ;
 
-
-/* =========================================================
-   DECLARAÇÕES
-   ========================================================= */
-
-VarSection
-    : '{' ListaDeclVar '}'
-      {
-          $$ =
-              ast_new(
-                  AST_VAR_SECTION,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          ast_add_child_list(
-              $$,
-              $2
-          );
-      }
+VarSection  : '{' ListaDeclVar '}' { $$ = criaOperador(noVarSec, yylineno, $2, NULL, NULL, NULL); }
     ;
 
-
-ListaDeclVar
-    : IDENTIFICADOR DeclVar ':' Tipo ';' ListaDeclVar
-      {
-          ASTNode *decl =
-              ast_new(
-                  AST_VAR_DECL,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          decl->value_type =
-              $4;
-
-
-          ASTNode *first_id =
-              ast_new_take(
-                  AST_IDENTIFIER,
-                  @1.first_line,
-                  $1
-              );
-
-
-          ast_add_child(
-              decl,
-              first_id
-          );
-
-
-          /*
-           * Adiciona os demais identificadores.
-           */
-
-          ast_add_child_list(
-              decl,
-              $2
-          );
-
-
-          /*
-           * Acrescenta a próxima declaração.
-           */
-
-          $$ =
-              ast_append(
-                  decl,
-                  $6
-              );
-      }
-
-
-    | IDENTIFICADOR DeclVar ':' Tipo ';'
-      {
-          ASTNode *decl =
-              ast_new(
-                  AST_VAR_DECL,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          decl->value_type =
-              $4;
-
-
-          ASTNode *first_id =
-              ast_new_take(
-                  AST_IDENTIFIER,
-                  @1.first_line,
-                  $1
-              );
-
-
-          ast_add_child(
-              decl,
-              first_id
-          );
-
-
-          ast_add_child_list(
-              decl,
-              $2
-          );
-
-
-          $$ =
-              decl;
-      }
+ListaDeclVar: IDENTIFICADOR DeclVar ':' Tipo ';' ListaDeclVar
+                {
+                    Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
+                    Toperador *lstIds = criaOperador(noLstId, yylineno, id, $2, NULL, NULL);
+                    Toperador *decl = criaOperador(noDeclVar, yylineno, lstIds, $4, NULL, NULL);
+                    $$ = criaOperador(noLstDecl, yylineno, decl, $6, NULL, NULL);
+                }
+                | IDENTIFICADOR DeclVar ':' Tipo ';'
+                    { 
+                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
+                        Toperador *lstIds = criaOperador(noLstId, yylineno, id, $2, NULL, NULL);
+                        Toperador *decl = criaOperador(noDeclVar, yylineno, lstIds, $4, NULL, NULL);
+                        $$ = criaOperador(noLstDecl, yylineno, decl, NULL, NULL, NULL);
+                    }
     ;
 
-
-DeclVar
-    : /* vazio */
-      {
-          $$ =
-              NULL;
-      }
-
-
-    | ',' IDENTIFICADOR DeclVar
-      {
-          ASTNode *id =
-              ast_new_take(
-                  AST_IDENTIFIER,
-                  @2.first_line,
-                  $2
-              );
-
-
-          id->next =
-              $3;
-
-
-          $$ =
-              id;
-      }
+DeclVar     : /* Cadeia Vazia */    { $$ = NULL; }
+                | ',' IDENTIFICADOR DeclVar
+                    { 
+                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $2);
+                        $$ = criaOperador(noLstId, yylineno, id, $3, NULL, NULL);
+                    }
     ;
 
-
-Tipo
-    : INT
-      {
-          $$ =
-              TYPE_INT;
-      }
-
-
-    | CAR
-      {
-          $$ =
-              TYPE_CAR;
-      }
+Tipo        : INT   { $$ = criaOperador(noTipoInt, yylineno, NULL, NULL, NULL, "int"); }
+                | CAR   { $$ = criaOperador(noTipoCar, yylineno, NULL, NULL, NULL, "car"); }
     ;
 
-
-/* =========================================================
-   LISTA DE COMANDOS
-   ========================================================= */
-
-ListaComando
-    : Comando
-      {
-          $$ =
-              $1;
-      }
-
-
-    | Comando ListaComando
-      {
-          $$ =
-              ast_append(
-                  $1,
-                  $2
-              );
-      }
+ListaComando: Comando   { $$ = criaOperador(noLstCmd, yylineno, $1, NULL, NULL, NULL); }
+                | Comando ListaComando  { $$ = criaOperador(noLstCmd, yylineno, $1, $2, NULL, NULL); }
     ;
 
-
-/* =========================================================
-   COMANDOS
-   ========================================================= */
-
-Comando
-    : ';'
-      {
-          $$ =
-              ast_new(
-                  AST_EMPTY,
-                  @1.first_line,
-                  NULL
-              );
-      }
-
-
-    | Expr ';'
-      {
-          $$ =
-              $1;
-      }
-
-
-    | LEIA IDENTIFICADOR ';'
-      {
-          $$ =
-              ast_new(
-                  AST_READ,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          ASTNode *id =
-              ast_new_take(
-                  AST_IDENTIFIER,
-                  @2.first_line,
-                  $2
-              );
-
-
-          ast_add_child(
-              $$,
-              id
-          );
-      }
-
-
-    | ESCREVA Expr ';'
-      {
-          $$ =
-              ast_new(
-                  AST_WRITE,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          ast_add_child(
-              $$,
-              $2
-          );
-      }
-
-
-    | ESCREVA CADEIACARACTERES ';'
-      {
-          $$ =
-              ast_new(
-                  AST_WRITE_STRING,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          ASTNode *string =
-              ast_new_take(
-                  AST_STRING,
-                  @2.first_line,
-                  $2
-              );
-
-
-          ast_add_child(
-              $$,
-              string
-          );
-      }
-
-
-    | NOVALINHA ';'
-      {
-          $$ =
-              ast_new(
-                  AST_NEWLINE,
-                  @1.first_line,
-                  NULL
-              );
-      }
-
-
-    | SE '(' Expr ')' ENTAO Comando FIMSE
-      {
-          $$ =
-              ast_new(
-                  AST_IF,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          /*
-           * Filho 1: condição
-           * Filho 2: comando
-           */
-
-          ast_add_child(
-              $$,
-              $3
-          );
-
-
-          ast_add_child(
-              $$,
-              $6
-          );
-      }
-
-
-    | SE '(' Expr ')' ENTAO Comando SENAO Comando FIMSE
-      {
-          $$ =
-              ast_new(
-                  AST_IF_ELSE,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          /*
-           * Filho 1: condição
-           * Filho 2: then
-           * Filho 3: else
-           */
-
-          ast_add_child(
-              $$,
-              $3
-          );
-
-
-          ast_add_child(
-              $$,
-              $6
-          );
-
-
-          ast_add_child(
-              $$,
-              $8
-          );
-      }
-
-
-    | ENQUANTO '(' Expr ')' Comando
-      {
-          $$ =
-              ast_new(
-                  AST_WHILE,
-                  @1.first_line,
-                  NULL
-              );
-
-
-          /*
-           * Filho 1: condição
-           * Filho 2: comando
-           */
-
-          ast_add_child(
-              $$,
-              $3
-          );
-
-
-          ast_add_child(
-              $$,
-              $5
-          );
-      }
-
-
-    | Bloco
-      {
-          $$ =
-              $1;
-      }
+Comando     : ';'   { $$ = criaOperador(noCmdVazio, yylineno, NULL, NULL, NULL, NULL); }
+                | Expr ';'  { $$ = $1; }
+                | LEIA IDENTIFICADOR ';'
+                    { 
+                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $2);
+                        $$ = criaOperador(noLeia, yylineno, id, NULL, NULL, NULL);
+                    }
+                | ESCREVA Expr ';'  { $$ = criaOperador(noEscreva, yylineno, $2, NULL, NULL, NULL); }
+                | ESCREVA CADEIACARACTERES ';'
+                    { 
+                        Toperador *str = criaOperador(noCadConst, yylineno, NULL, NULL, NULL, $2);
+                        $$ = criaOperador(noEscrevaCadeia, yylineno, str, NULL, NULL, NULL);
+                    }
+                | NOVALINHA ';' { $$ = criaOperador(noNovalinha, yylineno, NULL, NULL, NULL, NULL); }
+                | SE '(' Expr ')' ENTAO Comando FIMSE   { $$ = criaOperador(noSe, yylineno, $3, $6, NULL, NULL); }
+                | SE '(' Expr ')' ENTAO Comando SENAO Comando FIMSE    { $$ = criaOperador(noSeSenao, yylineno, $3, $6, $8, NULL); }
+                | ENQUANTO '(' Expr ')' Comando    { $$ = criaOperador(noEnquanto, yylineno, $3, $5, NULL, NULL); }
+                | Bloco   { $$ = $1; }
     ;
 
-
-/* =========================================================
-   EXPRESSÕES
-   ========================================================= */
-
-Expr
-    : OrExpr
-      {
-          $$ =
-              $1;
-      }
-
-
-    | IDENTIFICADOR '=' Expr
-      {
-          ASTNode *id =
-              ast_new_take(
-                  AST_IDENTIFIER,
-                  @1.first_line,
-                  $1
-              );
-
-
-          $$ =
-              ast_binary(
-                  AST_ASSIGN,
-                  @2.first_line,
-                  id,
-                  $3
-              );
-      }
+Expr        : OrExpr    { $$ = $1; }
+                | IDENTIFICADOR '=' Expr
+                    { 
+                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
+                        $$ = criaOperador(noAtrib, yylineno, id, $3, NULL, NULL);
+                    }
     ;
 
-
-OrExpr
-    : OrExpr OU AndExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_OR,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | AndExpr
-      {
-          $$ =
-              $1;
-      }
+OrExpr      : OrExpr OU AndExpr   { $$ = criaOperador(noOU, yylineno, $1, $3, NULL, NULL); }
+                | AndExpr   { $$ = $1; }
     ;
 
-
-AndExpr
-    : AndExpr E EqExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_AND,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | EqExpr
-      {
-          $$ =
-              $1;
-      }
+AndExpr     : AndExpr E EqExpr   { $$ = criaOperador(noE, yylineno, $1, $3, NULL, NULL); }
+                | EqExpr    { $$ = $1; }
     ;
 
-
-EqExpr
-    : EqExpr IGUAL DesigExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_EQ,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | EqExpr DIFERENTE DesigExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_NEQ,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | DesigExpr
-      {
-          $$ =
-              $1;
-      }
+EqExpr      : EqExpr IGUAL DesigExpr    { $$ = criaOperador(noIgual, yylineno, $1, $3, NULL, NULL); }
+                | EqExpr DIFERENTE DesigExpr    { $$ = criaOperador(noDiferente, yylineno, $1, $3, NULL, NULL); }
+                | DesigExpr   { $$ = $1; }
     ;
 
-
-DesigExpr
-    : DesigExpr '<' AddExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_LT,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | DesigExpr '>' AddExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_GT,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | DesigExpr MAIORIGUAL AddExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_GE,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | DesigExpr MENORIGUAL AddExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_LE,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | AddExpr
-      {
-          $$ =
-              $1;
-      }
+DesigExpr   : DesigExpr '<' AddExpr   { $$ = criaOperador(noMenor, yylineno, $1, $3, NULL, NULL); }
+                | DesigExpr '>' AddExpr   { $$ = criaOperador(noMaior, yylineno, $1, $3, NULL, NULL); }
+                | DesigExpr MAIORIGUAL AddExpr  { $$ = criaOperador(noMaiorIgual, yylineno, $1, $3, NULL, NULL); }
+                | DesigExpr MENORIGUAL AddExpr  { $$ = criaOperador(noMenorIgual, yylineno, $1, $3, NULL, NULL); }
+                | AddExpr   { $$ = $1; }
     ;
 
-
-AddExpr
-    : AddExpr '+' MulExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_ADD,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | AddExpr '-' MulExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_SUB,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | MulExpr
-      {
-          $$ =
-              $1;
-      }
+AddExpr     : AddExpr '+' MulExpr   { $$ = criaOperador(noMais, yylineno, $1, $3, NULL, NULL); }
+                | AddExpr '-' MulExpr { $$ = criaOperador(noMenos, yylineno, $1, $3, NULL, NULL); }   
+                | MulExpr   { $$ = $1; }
     ;
 
-
-MulExpr
-    : MulExpr '*' UnExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_MUL,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | MulExpr '/' UnExpr
-      {
-          $$ =
-              ast_binary(
-                  AST_DIV,
-                  @2.first_line,
-                  $1,
-                  $3
-              );
-      }
-
-
-    | UnExpr
-      {
-          $$ =
-              $1;
-      }
+MulExpr     : MulExpr '*' UnExpr    { $$ = criaOperador(noMult, yylineno, $1, $3, NULL, NULL); }
+                | MulExpr '/' UnExpr    { $$ = criaOperador(noDiv, yylineno, $1, $3, NULL, NULL); }
+                | UnExpr    { $$ = $1; }
     ;
 
-
-UnExpr
-    : '-' PrimExpr
-      {
-          $$ =
-              ast_unary(
-                  AST_NEG,
-                  @1.first_line,
-                  $2
-              );
-      }
-
-
-    | '!' PrimExpr
-      {
-          $$ =
-              ast_unary(
-                  AST_NOT,
-                  @1.first_line,
-                  $2
-              );
-      }
-
-
-    | PrimExpr
-      {
-          $$ =
-              $1;
-      }
+UnExpr      : '-' PrimExpr  { $$ = criaOperador(noMenosUnario, yylineno, $2, NULL, NULL, NULL); }
+                | '!' PrimExpr  { $$ = criaOperador(noNao, yylineno, $2, NULL, NULL, NULL); }
+                | PrimExpr  { $$ = $1; }
     ;
 
-
-PrimExpr
-    : IDENTIFICADOR
-      {
-          $$ =
-              ast_new_take(
-                  AST_IDENTIFIER,
-                  @1.first_line,
-                  $1
-              );
-      }
-
-
-    | CARCONST
-      {
-          $$ =
-              ast_new_take(
-                  AST_CARCONST,
-                  @1.first_line,
-                  $1
-              );
-      }
-
-
-    | INTCONST
-      {
-          $$ =
-              ast_new_take(
-                  AST_INTCONST,
-                  @1.first_line,
-                  $1
-              );
-      }
-
-
-    | '(' Expr ')'
-      {
-          /*
-           * Não criamos um nó para parênteses.
-           */
-
-          $$ =
-              $2;
-      }
+PrimExpr    : IDENTIFICADOR    { $$ = criaOperador(noId, yylineno, NULL, NULL, NULL, $1); }
+                | CARCONST     { $$ = criaOperador(noCarConst, yylineno, NULL, NULL, NULL, $1); }
+                | INTCONST     { $$ = criaOperador(noIntConst, yylineno, NULL, NULL, NULL, $1); }
+                | '(' Expr ')'  { $$ = $2; }
     ;
-
-
 %%
-
-
-/* =========================================================
-   ERRO SINTÁTICO
-   ========================================================= */
-
-void yyerror(
-    const char *s
-)
+/* Funções do usuário escritas em C */
+void yyerror(const char *s)
 {
-    fprintf(
-        stderr,
-        "ERRO: %s linha %d\n",
-        s,
-        yylineno
-    );
+    fprintf(stderr, "ERRO: %s linha %d\n", s, yylineno);
 }
 
 
-/* =========================================================
-   MAIN
-   ========================================================= */
-
-/*
- * Monta o nome do arquivo de saída a partir do
- * arquivo de entrada: teste.g -> teste.s
- */
-
-static char *output_name(
-    const char *input
-)
+int main(int argc, char **argv)
 {
-    size_t length =
-        strlen(input);
-
-    char *name =
-        malloc(length + 3);
-
-    if (name == NULL) {
-
-        fprintf(
-            stderr,
-            "ERRO: memoria insuficiente\n"
-        );
-
-        exit(1);
-    }
-
-    strcpy(name, input);
-
-    char *dot =
-        strrchr(name, '.');
-
-    char *slash =
-        strrchr(name, '/');
-
-    if (dot != NULL && (slash == NULL || dot > slash)) {
-        *dot = '\0';
-    }
-
-    strcat(name, ".s");
-
-    return name;
-}
-
-
-/*
- * Uso:
- *
- *   ./g-v1 [--ast] arquivo.g [saida.s]
- *
- * Sem o segundo argumento, o assembly é gravado
- * em arquivo.s
- */
-
-int main(
-    int argc,
-    char **argv
-)
-{
-    int show_ast = 0;
-
-    const char *input = NULL;
-
-    const char *output = NULL;
-
-
-    for (int i = 1; i < argc; i++) {
-
-        if (strcmp(argv[i], "--ast") == 0) {
-            show_ast = 1;
-        }
-        else if (input == NULL) {
-            input = argv[i];
-        }
-        else if (output == NULL) {
-            output = argv[i];
-        }
-        else {
-            input = NULL;
-            break;
-        }
-    }
-
-
-    if (input == NULL) {
-
-        fprintf(
-            stderr,
-            "Uso: %s [--ast] arquivo.g [saida.s]\n",
-            argv[0]
-        );
-
+    if (argc != 2) {
+        fprintf(stderr, "Uso: %s arquivo.g\n", argv[0]);
         return 1;
     }
 
-
-    yyin =
-        fopen(
-            input,
-            "r"
-        );
-
-
+    yyin = fopen(argv[1], "r");
     if (yyin == NULL) {
-
-        perror(
-            "Erro ao abrir arquivo"
-        );
-
+        perror("Erro ao abrir arquivo");
         return 1;
     }
 
-
-    int resultado =
-        yyparse();
-
-
+    int resultado = yyparse();
     fclose(yyin);
-
-
-    /*
-     * Se houve erro sintático,
-     * não fazemos as próximas fases.
-     */
-
     if (resultado != 0) {
-
-        ast_free(
-            ast_root
-        );
-
-        return 1;
+        return resultado;
     }
-
-
-    if (show_ast) {
-
-        printf(
-            "=== AST ===\n"
-        );
-
-        ast_print(
-            ast_root,
-            0
-        );
-    }
-
-
-    /*
-     * Análise semântica.
-     */
-
-    if (!semantic_analyze(ast_root)) {
-
-        ast_free(
-            ast_root
-        );
-
-        return 1;
-    }
-
-
-    /*
-     * Geração de código.
-     */
-
-    char *generated_name = NULL;
-
-    if (output == NULL) {
-
-        generated_name =
-            output_name(input);
-
-        output =
-            generated_name;
-    }
-
-
-    FILE *out =
-        fopen(
-            output,
-            "w"
-        );
-
-
-    if (out == NULL) {
-
-        perror(
-            "Erro ao criar arquivo de saida"
-        );
-
-        free(generated_name);
-
-        ast_free(
-            ast_root
-        );
-
-        return 1;
-    }
-
-
-    codegen_generate(
-        ast_root,
-        out
-    );
-
-
-    fclose(out);
-
-
-    printf(
-        "Codigo gerado em %s\n",
-        output
-    );
-
-
-    free(generated_name);
-
-    ast_free(
-        ast_root
-    );
-
+    
+    analiseSemantica(raiz);
 
     return 0;
+}
+
+Toperador * criaOperador(TespecieOperador tipoOperador, int linha, Toperador * filho1, Toperador * filho2, Toperador * filho3, char * lexema) {
+    Toperador * no = (Toperador*) malloc(sizeof(Toperador));
+    if (!no) {
+        fprintf(stderr, "Erro de alocacao de memoria para o no da AST\n");
+        exit(1);
+    }
+    no->tipoOperador = tipoOperador;
+    no->linha = linha;
+    no->filho1 = filho1;
+    no->filho2 = filho2;
+    no->filho3 = filho3;
+    no->lexema = lexema;
+    return no;
+}
+
+void percorreArvore(Toperador* raiz)
+{
+    if (raiz) {
+        obtemEspecieNoEnumLin(raiz, nomeOperador);
+        printf("%s", nomeOperador);
+        percorreArvore(raiz->filho1);
+        percorreArvore(raiz->filho2);
+        percorreArvore(raiz->filho3);
+    }
+}
+
+void obtemEspecieNoEnumLin(Toperador* no, char* nomeOperador)
+{
+    switch(no->tipoOperador) {
+        case noProg:
+            sprintf(nomeOperador, "principal | Lin: %d\n", no->linha);
+            break;
+        case noBloco:
+            sprintf(nomeOperador, "bloco | Lin: %d\n", no->linha);
+            break;
+        case noVarSec:
+            sprintf(nomeOperador, "varSection | Lin: %d\n", no->linha);
+            break;
+        case noLstDecl:
+            sprintf(nomeOperador, "lstDecl\n");
+            break;
+        case noDeclVar:
+            sprintf(nomeOperador, "declVar | Lin: %d\n", no->linha);
+            break;
+        case noLstId:
+            sprintf(nomeOperador, "lstId\n");
+            break;
+        case noTipoInt:
+            sprintf(nomeOperador, "tipo: int\n");
+            break;
+        case noTipoCar:
+            sprintf(nomeOperador, "tipo: car\n");
+            break;
+
+        case noLstCmd:
+            sprintf(nomeOperador, "lstCmd\n");
+            break;
+        case noCmdVazio:
+            sprintf(nomeOperador, "; | Lin: %d\n", no->linha);
+            break;
+        case noAtrib:
+            sprintf(nomeOperador, "= | Lin: %d\n", no->linha);
+            break;
+        case noLeia:
+            sprintf(nomeOperador, "leia | Lin: %d\n", no->linha);
+            break;
+        case noEscreva:
+            sprintf(nomeOperador, "escreva | Lin: %d\n", no->linha);
+            break;
+        case noEscrevaCadeia:
+            sprintf(nomeOperador, "escreva string | Lin: %d\n", no->linha);
+            break;
+        case noNovalinha:
+            sprintf(nomeOperador, "novalinha | Lin: %d\n", no->linha);
+            break;
+        case noSe:
+            sprintf(nomeOperador, "se | Lin: %d\n", no->linha);
+            break;
+        case noSeSenao:
+            sprintf(nomeOperador, "se-senao | Lin: %d\n", no->linha);
+            break;
+        case noEnquanto:
+            sprintf(nomeOperador, "enquanto | Lin: %d\n", no->linha);
+            break;
+
+        case noOU:
+            sprintf(nomeOperador, "|| | Lin: %d\n", no->linha);
+            break;
+        case noE:
+            sprintf(nomeOperador, "& | Lin: %d\n", no->linha);
+            break;
+        case noIgual:
+            sprintf(nomeOperador, "== | Lin: %d\n", no->linha);
+            break;
+        case noDiferente:
+            sprintf(nomeOperador, "!= | Lin: %d\n", no->linha);
+            break;
+        case noMenor:
+            sprintf(nomeOperador, "< | Lin: %d\n", no->linha);
+            break;
+        case noMaior:
+            sprintf(nomeOperador, "> | Lin: %d\n", no->linha);
+            break;
+        case noMenorIgual:
+            sprintf(nomeOperador, "<= | Lin: %d\n", no->linha);
+            break;
+        case noMaiorIgual:
+            sprintf(nomeOperador, ">= | Lin: %d\n", no->linha);
+            break;
+
+        case noMais:
+            sprintf(nomeOperador, "+ | Lin: %d\n", no->linha);
+            break;
+        case noMenos:
+            sprintf(nomeOperador, "- | Lin: %d\n", no->linha);
+            break;
+        case noMult:
+            sprintf(nomeOperador, "* | Lin: %d\n", no->linha);
+            break;
+        case noDiv:
+            sprintf(nomeOperador, "/ | Lin: %d\n", no->linha);
+            break;
+
+        case noMenosUnario:
+            sprintf(nomeOperador, "- (unario) | Lin: %d\n", no->linha);
+            break;
+        case noNao:
+            sprintf(nomeOperador, "! | Lin: %d\n", no->linha);
+            break;
+
+        case noId:
+            sprintf(nomeOperador, "%s | Lin: %d\n", no->lexema, no->linha);
+            break;
+        case noIntConst:
+            sprintf(nomeOperador, "%s | Lin: %d\n", no->lexema, no->linha);
+            break;
+        case noCarConst:
+            sprintf(nomeOperador, "%s | Lin: %d\n", no->lexema, no->linha);
+            break;
+        case noCadConst:
+            sprintf(nomeOperador, "%s | Lin: %d\n", no->lexema, no->linha);
+            break;
+    }
 }
