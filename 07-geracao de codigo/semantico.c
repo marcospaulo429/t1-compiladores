@@ -24,7 +24,7 @@ static void declaraIdentificadores(Toperador * noLstId, TipoDado tipo, int linha
 
     if (noLstId->filho1 && noLstId->filho1->lexema) {
         char * nome = noLstId->filho1->lexema;
-        if (!inserirSimbolo(pilhaSemantica, nome, tipo, linha)) {
+        if (!inserirSimbolo(pilhaSemantica, nome, tipo, linha, 0)) {
             char msg[200];
             snprintf(msg, sizeof(msg), "variável '%s' redeclarada", nome);
             erroSemantico(msg, linha);

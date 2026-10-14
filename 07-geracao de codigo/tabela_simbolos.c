@@ -92,7 +92,7 @@ Simbolo * pesquisarNome(PilhaTabelas * pilha, const char * nome) {
     return NULL;
 }
 
-int inserirSimbolo(PilhaTabelas * pilha, const char * nome, TipoDado tipo, int linha) {
+int inserirSimbolo(PilhaTabelas * pilha, const char * nome, TipoDado tipo, int linha, int offset) {
     if (!pilha || !pilha->topo || !nome) return 0;
 
     if (pesquisarNoEscopoAtual(pilha, nome) != NULL) return 0;
@@ -113,6 +113,7 @@ int inserirSimbolo(PilhaTabelas * pilha, const char * nome, TipoDado tipo, int l
 
     novo->tipo = tipo;
     novo->linha = linha;
+    novo->offset = offset;
     novo->prox = pilha->topo->baldes[h];
     pilha->topo->baldes[h] = novo;
 

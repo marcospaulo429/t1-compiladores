@@ -13,6 +13,7 @@ typedef struct Simbolo {
     char * nome;
     TipoDado tipo;
     int linha;
+    int offset;
     struct Simbolo * prox;
 } Simbolo;
 
@@ -33,7 +34,7 @@ Simbolo * pesquisarNome(PilhaTabelas * pilha, const char * nome);
 void desempilharTabela(PilhaTabelas * pilha);
 
 Simbolo * pesquisarNoEscopoAtual(PilhaTabelas * pilha, const char * nome);
-int inserirSimbolo(PilhaTabelas * pilha, const char * nome, TipoDado tipo, int linha);
+int inserirSimbolo(PilhaTabelas * pilha, const char * nome, TipoDado tipo, int linha, int offset);
 void destruirPilha(PilhaTabelas * pilha);
 
 #endif
