@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "tipos.h"
 #include "tabela_simbolos.h"
+#include "semantico.h"
 
 extern int yylineno;
 extern char *yytext;
@@ -182,18 +183,14 @@ int main(int argc, char **argv)
     }
 
     int resultado = yyparse();
-    if (resultado == 0) {
-        printf("--- ARVORE SINTATICA (AST) ---\n");
-        percorreArvore(raiz);
-
-        printf("\n--- TESTE DE INTEGRACAO DA TABELA DE SIMBOLOS ---\n");
-        PilhaTabelas *pilha = iniciarPilha();
-        testaTabelaSimbolosAST(raiz, pilha);
-        destruirPilha(pilha);
-    }
-
     fclose(yyin);
-    return resultado;
+    if (resultado != 0) {
+        return resultado;
+    }
+    
+    analiseSemantica(raiz);
+
+    return 0;
 }
 
 Toperador * criaOperador(TespecieOperador tipoOperador, int linha, Toperador * filho1, Toperador * filho2, Toperador * filho3, char * lexema) {
@@ -338,77 +335,5 @@ void obtemEspecieNoEnumLin(Toperador* no, char* nomeOperador)
         case noCadConst:
             sprintf(nomeOperador, "%s | Lin: %d\n", no->lexema, no->linha);
             break;
-    }
-}
-
-/* Extrai o tipo correspondente a partir do nó da AST */
-static TipoDado extraiTipoAST(Toperador *noTipo) {
-    if (!noTipo) return TIPO_INDEFINIDO;
-    if (noTipo->tipoOperador == noTipoInt) return TIPO_INT;
-    if (noTipo->tipoOperador == noTipoCar) return TIPO_CAR;
-    return TIPO_INDEFINIDO;
-}
-
-/* Insere identificadores encadeados na lista de ids */
-static void insereListaIds(PilhaTabelas *pilha, Toperador *noLstId, TipoDado tipo, int linha) {
-    if (!noLstId) return;
-    if (noLstId->filho1 && noLstId->filho1->lexema) {
-        if (!inserirSimbolo(pilha, noLstId->filho1->lexema, tipo, linha)) {
-            printf("[TESTE TS] AVISO: Variavel '%s' redeclarada no mesmo bloco (Linha %d)\n", 
-                   noLstId->filho1->lexema, linha);
-        } else {
-            printf("[TESTE TS] Inserida var: '%s' (%s) no escopo atual (Linha %d)\n", 
-                   noLstId->filho1->lexema, (tipo == TIPO_INT ? "int" : "car"), linha);
-        }
-    }
-    insereListaIds(pilha, noLstId->filho2, tipo, linha);
-}
-
-/* Percorre as declarações de um bloco */
-static void processaDeclaracoes(PilhaTabelas *pilha, Toperador *noLstDecl) {
-    if (!noLstDecl) return;
-    Toperador *decl = noLstDecl->filho1;
-    if (decl && decl->tipoOperador == noDeclVar) {
-        TipoDado tipo = extraiTipoAST(decl->filho2);
-        insereListaIds(pilha, decl->filho1, tipo, decl->linha);
-    }
-    processaDeclaracoes(pilha, noLstDecl->filho2);
-}
-
-/* Caminhamento teste pela AST para demonstrar o ciclo de vida da Pilha de Tabelas */
-void testaTabelaSimbolosAST(Toperador *no, PilhaTabelas *pilha) {
-    if (!no) return;
-
-    int criouEscopo = 0;
-
-    if (no->tipoOperador == noBloco && no->filho1 != NULL) {
-        /* Bloco com declarações: empilha novo escopo */
-        empilharTabela(pilha);
-        criouEscopo = 1;
-        printf("\n--> [TESTE TS] Novo escopo empilhado para bloco da Linha %d\n", no->linha);
-        
-        /* Processa a VarSection (filho1) */
-        if (no->filho1->filho1) {
-            processaDeclaracoes(pilha, no->filho1->filho1);
-        }
-    }
-
-    /* Se encontrar o uso de um identificador em expressão ou comando, busca na pilha */
-    if (no->tipoOperador == noId && no->lexema) {
-        Simbolo *s = pesquisarNome(pilha, no->lexema);
-        if (s) {
-            printf("[TESTE TS] Uso do identificador '%s' resolvido com sucesso (declarado na Linha %d)\n", 
-                   no->lexema, s->linha);
-        }
-    }
-
-    /* Percorre subárvores */
-    testaTabelaSimbolosAST(no->filho1, pilha);
-    testaTabelaSimbolosAST(no->filho2, pilha);
-    testaTabelaSimbolosAST(no->filho3, pilha);
-
-    if (criouEscopo) {
-        desempilharTabela(pilha);
-        printf("<-- [TESTE TS] Escopo do bloco da Linha %d desempilhado\n", no->linha);
     }
 }
