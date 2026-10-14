@@ -2,9 +2,11 @@
 /* Declarações em linguagem C */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tipos.h"
 #include "tabela_simbolos.h"
 #include "semantico.h"
+#include "gerador.h"
 
 extern int yylineno;
 extern char *yytext;
@@ -189,6 +191,23 @@ int main(int argc, char **argv)
     }
     
     analiseSemantica(raiz);
+
+    char nomeSaida[256];
+    strncpy(nomeSaida, argv[1], sizeof(nomeSaida) - 5);
+    char *ponto = strrchr(nomeSaida, '.');
+    if (ponto) *ponto = '\0';
+    strcat(nomeSaida, ".asm");
+
+    FILE *fout = fopen(nomeSaida, "w");
+    if (!fout) {
+        perror("Erro ao criar arquivo MIPS de saida");
+        return 1;
+    }
+
+    geraCodigoMIPS(raiz, fout);
+    fclose(fout);
+
+    printf("Codigo MIPS gerado com sucesso: %s\n", nomeSaida);
 
     return 0;
 }
