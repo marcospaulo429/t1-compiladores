@@ -1,4 +1,6 @@
-CC = gcc-14
+ifeq ($(origin CC),default)
+  CC = gcc
+endif
 TEST_DIR = ../testes_G-v1
 
 g-v1: g-v1.tab.o lex.yy.o

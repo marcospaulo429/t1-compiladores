@@ -94,7 +94,7 @@
 }
 
 
-\"[^\"\n]*\n {
+\"[^\"\n]* {
     printf("ERRO: CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA %d\n", yylineno);
     exit(1);
 }

@@ -173,8 +173,8 @@ void yyerror(const char *s)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        fprintf(stderr, "Uso: %s arquivo.g\n", argv[0]);
+    if (argc < 2 || argc > 3) {
+        fprintf(stderr, "Uso: %s arquivo.g [saida.asm]\n", argv[0]);
         return 1;
     }
 
@@ -193,10 +193,16 @@ int main(int argc, char **argv)
     analiseSemantica(raiz);
 
     char nomeSaida[256];
-    strncpy(nomeSaida, argv[1], sizeof(nomeSaida) - 5);
-    char *ponto = strrchr(nomeSaida, '.');
-    if (ponto) *ponto = '\0';
-    strcat(nomeSaida, ".asm");
+    if (argc == 3) {
+        strncpy(nomeSaida, argv[2], sizeof(nomeSaida) - 1);
+        nomeSaida[sizeof(nomeSaida) - 1] = '\0';
+    } else {
+        strncpy(nomeSaida, argv[1], sizeof(nomeSaida) - 5);
+        nomeSaida[sizeof(nomeSaida) - 5] = '\0';
+        char *ponto = strrchr(nomeSaida, '.');
+        if (ponto) *ponto = '\0';
+        strcat(nomeSaida, ".asm");
+    }
 
     FILE *fout = fopen(nomeSaida, "w");
     if (!fout) {

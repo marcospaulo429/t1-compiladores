@@ -1,4 +1,6 @@
-CC = gcc-14
+ifeq ($(origin CC),default)
+  CC = gcc
+endif
 CFLAGS = -Wall -Wextra -std=c99
 TARGET = testa_tabela
 

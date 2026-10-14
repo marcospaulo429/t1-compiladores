@@ -7,3 +7,5 @@ lex.yy.o
 g-v1
 *.asm
 *.o
+testa_tabela
+.DS_Store

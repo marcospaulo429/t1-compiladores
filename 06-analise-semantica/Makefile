@@ -1,4 +1,6 @@
-CC = gcc-14
+ifeq ($(origin CC),default)
+  CC = gcc
+endif
 TEST_DIR = ../testes_G-v1
 
 # Alvo principal: compila e liga o compilador g-v1

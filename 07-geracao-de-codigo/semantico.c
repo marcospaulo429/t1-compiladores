@@ -112,7 +112,7 @@ static TipoDado checarExpressao(Toperador * expr) {
         case noNao: {
             TipoDado t = checarExpressao(expr->filho1);
             if (t != TIPO_INT) {
-                erroSemantico("operador negação eige operando do tipo int", expr->linha);
+                erroSemantico("operador negação exige operando do tipo int", expr->linha);
             }
             return TIPO_INT;
         }
@@ -217,7 +217,7 @@ static void checarComando(Toperador * cmd) {
         case noEnquanto: {
             TipoDado tCond = checarExpressao(cmd->filho1);
             if (tCond != TIPO_INT) {
-                erroSemantico("condicao do 'enquanto' dever ser do tipo int", cmd->linha);
+                erroSemantico("condicao do 'enquanto' deve ser do tipo int", cmd->linha);
             }
             checarComando(cmd->filho2);
             break;
