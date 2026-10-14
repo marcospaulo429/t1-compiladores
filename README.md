@@ -1,122 +1,131 @@
-# T1 – Compiladores (UFG)
+# Trabalho 1 - Compilador para a linguagem G-V1
 
-Compilador construído etapa por etapa, em C, para a linguagem **G-V1**, acompanhando o conteúdo da disciplina de Compiladores (UFG). Cada diretório corresponde a uma fase do compilador e foi criado em ordem cronológica, conforme o conteúdo era estudado. Cada fase parte do que a anterior produziu.
+Compiladores - Instituto de Informática (UFG), 2026-2
+Prof. Thierson Couto Rosa
 
-## Etapas
+Alunos: Marcos Paulo e Giordana
 
-| # | Diretório | Fase | Estado |
-|---|-----------|------|--------|
-| 1 | [analise lexica/](analise%20lexica/) | Análise léxica com Flex | Concluída |
-| 2 | [analise lexica e sintatica com flex e bison/](analise%20lexica%20e%20sintatica%20com%20flex%20e%20bison/) | Análise léxica + sintática com Flex e Bison | Concluída |
-| 3 | [AST/](AST/) | Árvore sintática abstrata (AST) | Concluída |
-| 4 | [tabela de simbolos/](tabela%20de%20simbolos/) | Tabela de símbolos com pilha de escopos | Concluída |
-| 5 | [analise semantica/](analise%20semantica/) | Análise semântica (escopos e tipos) | Concluída |
-| 6 | [geracao de codigo/](geracao%20de%20codigo/) | Geração de código assembly MIPS | Concluída |
-| 7 | `makefile e testes` (renomeado para [final/](final/)) | Makefile e testes automatizados | Concluída |
+Compilador para a linguagem G-V1 feito em C com Flex e Bison. Ele lê um programa `.g`,
+faz a análise léxica, sintática e semântica e, se não tiver erro, gera o código em assembly
+MIPS, que pode ser executado no SPIM ou no MARS.
 
-O diretório [final/](final/) é a versão para entrega: o código completo, o Makefile e os testes.
+O enunciado está em [Parte1.pdf](Parte1.pdf). O histórico de como fomos fazendo cada etapa
+está na branch `desenvolvimento`.
 
-### 1. Análise léxica
-Scanner em Flex ([g-v1.l](analise%20lexica/g-v1.l)) que reconhece os tokens da linguagem:
-
-- palavras reservadas: `principal`, `int`, `car`, `leia`, `escreva`, `novalinha`, `se`, `entao`, `senao`, `fimse`, `enquanto`;
-- operadores: `+ - * /`, `< > <= >= == !=`, `&`, `||`, `!`, `=`;
-- delimitadores: `{ } ( ) , : ;`;
-- identificadores, constantes inteiras, caractere (`'a'`) e cadeias (`"texto"`);
-- comentários `/* ... */`, com erro se o comentário não for fechado.
-
-### 2. Análise sintática
-O scanner passa a alimentar um parser Bison ([g-v1.y](analise%20lexica%20e%20sintatica%20com%20flex%20e%20bison/g-v1.y)). Nessa etapa a gramática da linguagem é definida e o programa é apenas validado (aceito ou rejeitado, com erro de sintaxe).
-
-### 3. AST
-O parser passa a construir uma árvore sintática abstrata durante a análise:
-
-- [ast.h](AST/ast.h) e [ast.c](AST/ast.c): nós (`ASTNode`) com tipo, linha, lexema, tipo de valor, primeiro filho e próximo irmão, além de funções de construção, impressão (`ast_print`) e liberação (`ast_free`);
-- [g-v1.y](AST/g-v1.y): ações semânticas que montam a árvore, com uma camada de expressões por precedência (`||`, `&`, igualdade, relacionais, soma/subtração, multiplicação/divisão, operadores unários e primários);
-- [g-v1.l](AST/g-v1.l): scanner adaptado para devolver o lexema ao parser.
-
-Ao final da análise, o programa imprime a AST.
-
-### 4. Tabela de símbolos
-[symble_table.h](tabela%20de%20simbolos/symble_table.h) e [symble_table.c](tabela%20de%20simbolos/symble_table.c):
-
-- pilha de escopos, em que cada tabela guarda os símbolos de um escopo;
-- operações `push`/`pop` de escopo, `insert` (retorna erro se o identificador já existe no escopo atual), `lookup` na pilha inteira e `lookup_current` só no escopo atual;
-- cada símbolo guarda nome, tipo, linha de declaração e `offset`/`size`, usados na geração de código.
-
-### 5. Análise semântica
-Um percurso na AST que mantém a pilha de escopos. Cada bloco com declarações abre um escopo novo, que é removido ao final do bloco. Verifica:
-
-- identificadores declarados antes do uso e sem redeclaração no mesmo escopo;
-- atribuição com tipos iguais;
-- operadores aritméticos e lógicos só sobre `int`, relacionais e de igualdade sobre operandos do mesmo tipo;
-- condições de `se` e `enquanto` do tipo `int`.
-
-Os erros saem como `ERRO: mensagem linha N`.
-
-### 6. Geração de código
-[codegen.c](geracao%20de%20codigo/codegen.c) percorre a AST e gera assembly MIPS que roda no SPIM ou no MARS:
-
-- um único quadro de pilha guarda todas as variáveis. Cada símbolo recebe um `offset` a partir de `$fp`, com 4 bytes para `int` e 1 byte para `car`. Blocos aninhados usam o espaço logo depois do bloco externo e o liberam ao terminar;
-- expressões deixam o resultado em `$t0`. Em operações binárias, o operando da esquerda é guardado na pilha enquanto o da direita é calculado;
-- `||` e `&` avaliam o lado direito só se for necessário;
-- `se`, `senao` e `enquanto` viram desvios com rótulos únicos;
-- `leia`, `escreva` e `novalinha` usam `syscall` (inteiro ou caractere, conforme o tipo);
-- cadeias de caracteres vão para a seção `.data`.
-
-### 7. Makefile e testes
-O [Makefile](final/Makefile) gera o `g-v1` com `make`. O script [rodar_testes.sh](final/rodar_testes.sh) compila os programas de [final/testes/ok/](final/testes/ok/), executa o assembly no SPIM e compara a saída esperada. Também confere que os programas de [final/testes/erro/](final/testes/erro/) são rejeitados com a mensagem certa.
-
-## A linguagem G-V1
-
-Os programas têm extensão `.g`. Um programa tem a palavra `principal`, um bloco opcional de declaração de variáveis e um bloco de comandos:
-
-```
-principal {
-    x: int;
-    y: int;
-} {
-    x = 10 + y;
-    escreva x;
-    novalinha;
-}
-```
-
-Tipos: `int` e `car`. Comandos: atribuição, `leia`, `escreva` (expressão ou cadeia), `novalinha`, `se ... entao ... [senao ...] fimse` e `enquanto`.
-
-## Como compilar e executar
-
-Requer `flex`, `bison` e `gcc`. A especificação usa Flex 2.6.4 e Bison 3.8.2.
-
-```sh
-cd final
-make                       # gera o executavel g-v1
-./g-v1 programa.g          # gera programa.s
-./g-v1 programa.g saida.s  # escolhe o nome do arquivo de saida
-./g-v1 --ast programa.g    # tambem imprime a AST
-spim -file programa.s      # executa o assembly gerado
-```
-
-Testes (precisam do `spim`, por exemplo `brew install spim`):
-
-```sh
-make test
-make clean
-```
-
-No macOS o Bison do sistema é o 2.3. Para usar o 3.8.2 do Homebrew: `make BISON=/opt/homebrew/opt/bison/bin/bison`.
-
-As etapas anteriores seguem o mesmo fluxo (`bison -d`, `flex`, `gcc`), sem os arquivos das fases seguintes.
-
-## Estrutura
+## Organização
 
 ```
 .
-├── analise lexica/                              # 1. scanner (Flex)
-├── analise lexica e sintatica com flex e bison/ # 2. scanner + parser (Flex + Bison)
-├── AST/                                         # 3. construção e impressão da AST
-├── tabela de simbolos/                          # 4. tabela de símbolos (escopos)
-├── analise semantica/                           # 5. análise semântica
-├── geracao de codigo/                           # 6. geração de código MIPS
-└── final/                                       # 7. versão final: Makefile e testes
+├── Parte1.pdf          enunciado
+├── trabalho-final/     codigo do compilador (pasta que e entregue)
+│   ├── Makefile
+│   ├── g-v1.l          analisador lexico (Flex)
+│   ├── g-v1.y          analisador sintatico + construcao da AST (Bison) e main
+│   ├── ast.h / ast.c   arvore sintatica abstrata
+│   ├── symble_table.h / symble_table.c   pilha de tabelas de simbolos
+│   ├── semantic.h / semantic.c           analisador semantico
+│   └── codegen.h / codegen.c             gerador de codigo MIPS
+└── testes/
+    ├── rodar_testes.sh
+    ├── ok/             programas corretos (.g), entrada (.in) e saida esperada (.out)
+    └── erro/           programas com erro (.g) e a mensagem esperada (.err)
 ```
+
+## Como compilar e rodar
+
+Precisa de `gcc`, `flex` e `bison` (testamos com gcc 14, Flex 2.6.4 e Bison 3.8.2, que são as
+versões do enunciado).
+
+```sh
+cd trabalho-final
+make                         # gera o executavel g-v1
+./g-v1 programa.g            # gera programa.s
+./g-v1 programa.g saida.s    # escolhendo o nome do arquivo de saida
+./g-v1 --ast programa.g      # tambem mostra a AST na tela
+spim -file programa.s        # executa o codigo gerado
+make clean
+```
+
+Se o programa tiver erro, o compilador mostra uma linha começando com `ERRO:` e o número
+da linha, não gera o `.s` e termina com código de saída 1.
+
+No macOS o `bison` que vem no sistema é o 2.3. Dá pra usar o do Homebrew com
+`make BISON=/opt/homebrew/opt/bison/bin/bison`.
+
+## Testes
+
+```sh
+cd trabalho-final
+make test
+```
+
+O script [testes/rodar_testes.sh](testes/rodar_testes.sh) compila cada programa de `testes/ok`,
+executa o assembly no SPIM (com o `.in` como entrada, quando tem) e compara com o `.out`.
+Para os programas de `testes/erro`, confere se o compilador recusa o programa, não gera
+assembly e mostra a mensagem do `.err`.
+
+São 15 programas corretos e 26 com erro (6 léxicos, 7 sintáticos e 13 semânticos). Os de
+nota em conceito, PA, soma, sequência ordenada e fatorial vieram dos testes que a Giordana
+juntou; os outros a gente escreveu para testar cada parte da linguagem.
+
+Rodamos tudo em Linux (container `gcc:14`) e no macOS: `41 passaram, 0 falharam`.
+
+## O que o enunciado pede e onde está
+
+| Item do enunciado | Onde está |
+|-------------------|-----------|
+| 3.1 Analisador léxico com Flex | `g-v1.l` |
+| Comentários `/* */` em várias linhas, com erro se não fechar | `g-v1.l` (estado `COMENTARIO`) |
+| Mensagens `ERRO: CARACTERE INVÁLIDO`, `COMENTÁRIO NAO TERMINA`, `CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA` + linha | `g-v1.l` |
+| 3.2 Analisador sintático com Bison, `extern yylineno`, `yytext`, `yylex` | `g-v1.y` |
+| `yyerror` com `ERRO:` e a linha | `g-v1.y` |
+| `main` abre `argv[1]` em `yyin` e fecha no final | `g-v1.y` |
+| 4. AST montada pelas ações semânticas, com a linha de cada item | `g-v1.y`, `ast.c` |
+| 5. Pilha de tabelas de símbolos: iniciar, empilhar escopo, pesquisar do topo para a base, remover escopo | `symble_table.c` |
+| 6. Análise semântica (escopo e tipos), parando no primeiro erro | `semantic.c` |
+| 7. Geração de código percorrendo a AST e usando a tabela de símbolos para achar a posição das variáveis | `codegen.c` |
+| 8. Makefile que gera o executável `g-v1` só com `make` | `Makefile` |
+
+## Como funciona
+
+**Léxico.** Além dos tokens da tabela do enunciado, o scanner guarda o lexema em `yylval`
+para o parser. A `INTCONST` é só a sequência de dígitos: o sinal fica com a regra
+`UnExpr -> '-' PrimExpr`. Antes a gente colocava o sinal na `INTCONST`, mas aí `n-1` (sem
+espaço) virava `n` seguido do número `-1` e dava erro de sintaxe.
+
+**Sintático e AST.** A gramática é a do enunciado. Cada nó da AST tem o tipo do nó, a linha,
+o lexema, o primeiro filho e o próximo irmão. Um bloco fica como `BLOCK -> [VAR_SECTION]
+COMMAND_LIST`, então as declarações aparecem antes dos comandos, como o enunciado descreve.
+
+**Tabela de símbolos.** Uma pilha de escopos. Cada símbolo guarda nome, tipo, linha da
+declaração e o `offset`/tamanho usados na geração de código.
+
+**Semântico.** Percorre a AST da raiz para as folhas, da esquerda para a direita. Todo bloco
+com declarações empilha um escopo novo e desempilha no final. Verifica:
+
+- variável declarada antes de usar e sem redeclaração no mesmo escopo;
+- atribuição com os dois lados do mesmo tipo;
+- `+ - * /`, `||`, `&`, `!` e `-` unário só com `int`;
+- relacionais e `== !=` com operandos do mesmo tipo (resultado `int`);
+- condição de `se` e `enquanto` do tipo `int`.
+
+**Geração de código.** Faz outro percurso na AST empilhando as tabelas de novo, agora para
+calcular onde cada variável fica na memória:
+
+- todas as variáveis ficam em um quadro na pilha, acessadas por `offset($fp)`
+  (`int` com 4 bytes, `car` com 1 byte). Um bloco interno usa o espaço logo depois do bloco
+  de fora e as variáveis começam com zero quando o bloco começa;
+- o resultado de uma expressão fica em `$t0`. Numa operação binária o operando da esquerda
+  é empilhado enquanto o da direita é calculado;
+- `||` e `&` só calculam o lado direito quando precisa (curto-circuito);
+- `se`/`senao`/`enquanto` viram desvios com rótulos numerados;
+- `leia`, `escreva` e `novalinha` usam `syscall` (5/12 para ler int/car, 1/11/4 para
+  escrever int/car/cadeia). As cadeias ficam na seção `.data`.
+
+## Observações
+
+- Nos erros sintáticos a linha mostrada é a do token em que o Bison percebeu o erro. Por
+  exemplo, se falta o `;` no fim da linha 20, o erro aparece na linha 21, no comando seguinte.
+- Divisão por zero não é verificada pelo compilador.
+- No SPIM, um `leia` de inteiro logo depois de um `leia` de caractere pode ler 0 se o número
+  estiver na linha seguinte da entrada (é uma limitação do simulador).
