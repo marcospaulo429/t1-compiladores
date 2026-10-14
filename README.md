@@ -1,122 +1,141 @@
-# T1 – Compiladores (UFG)
+# Compilador para a Linguagem G-V1 (UFG)
 
-Compilador construído etapa por etapa, em C, para a linguagem **G-V1**, acompanhando o conteúdo da disciplina de Compiladores (UFG). Cada diretório corresponde a uma fase do compilador e foi criado em ordem cronológica, conforme o conteúdo era estudado. Cada fase parte do que a anterior produziu.
+Implementação de um compilador didático para a linguagem **G-V1**, desenvolvido para o Trabalho 1 da disciplina de Compiladores (Instituto de Informática – Universidade Federal de Goiás), sob orientação do Prof. Thierson Couto Rosa.
 
-## Etapas
+O repositório é estruturado em diretórios numerados correspondentes a cada seção e etapa de implementação descritas na especificação oficial do trabalho ([Parte1.pdf](Parte1.pdf)).
 
-| # | Diretório | Fase | Estado |
-|---|-----------|------|--------|
-| 1 | [analise lexica/](analise%20lexica/) | Análise léxica com Flex | Concluída |
-| 2 | [analise lexica e sintatica com flex e bison/](analise%20lexica%20e%20sintatica%20com%20flex%20e%20bison/) | Análise léxica + sintática com Flex e Bison | Concluída |
-| 3 | [AST/](AST/) | Árvore sintática abstrata (AST) | Concluída |
-| 4 | [tabela de simbolos/](tabela%20de%20simbolos/) | Tabela de símbolos com pilha de escopos | Concluída |
-| 5 | [analise semantica/](analise%20semantica/) | Análise semântica (escopos e tipos) | Concluída |
-| 6 | [geracao de codigo/](geracao%20de%20codigo/) | Geração de código assembly MIPS | Concluída |
-| 7 | `makefile e testes` (renomeado para [final/](final/)) | Makefile e testes automatizados | Concluída |
 
-O diretório [final/](final/) é a versão para entrega: o código completo, o Makefile e os testes.
+## Estrutura do Repositório
 
-### 1. Análise léxica
-Scanner em Flex ([g-v1.l](analise%20lexica/g-v1.l)) que reconhece os tokens da linguagem:
+| Seção no PDF | Diretório | Descrição |
+|:------------:|-----------|-----------|
+| **Seção 3** | [03-geracao-analisadores-sintatico-lexico/](03-geracao-analisadores-sintatico-lexico/) | Analisadores léxico (Flex) e sintático (Bison) integrados |
+| **Seção 4** | [04-geracao-representacao-intermediaria/](04-geracao-representacao-intermediaria/) | Construção da Árvore Sintática Abstrata (AST) durante o parsing |
+| **Seção 5** | [05-tabela-simbolos/](05-tabela-simbolos/) | Pilha de tabelas de símbolos com escopos aninhados e testes unitários |
+| **Seção 6** | [06-analise-semantica/](06-analise-semantica/) | Analisador semântico: verificação de escopos e checagem de tipos na AST |
+| **Seção 7** | [07-geracao-de-codigo/](07-geracao-de-codigo/) | Geração de código objeto em linguagem Assembly MIPS |
+| **Seção 8** | [entrega/](entrega/) | **Pasta final para submissão**, contendo estritamente os arquivos exigidos |
+| **Testes**   | [testes_G-v1/](testes_G-v1/) | Suíte completa de testes sintáticos, léxicos, semânticos e programas corretos |
 
-- palavras reservadas: `principal`, `int`, `car`, `leia`, `escreva`, `novalinha`, `se`, `entao`, `senao`, `fimse`, `enquanto`;
-- operadores: `+ - * /`, `< > <= >= == !=`, `&`, `||`, `!`, `=`;
-- delimitadores: `{ } ( ) , : ;`;
-- identificadores, constantes inteiras, caractere (`'a'`) e cadeias (`"texto"`);
-- comentários `/* ... */`, com erro se o comentário não for fechado.
 
-### 2. Análise sintática
-O scanner passa a alimentar um parser Bison ([g-v1.y](analise%20lexica%20e%20sintatica%20com%20flex%20e%20bison/g-v1.y)). Nessa etapa a gramática da linguagem é definida e o programa é apenas validado (aceito ou rejeitado, com erro de sintaxe).
 
-### 3. AST
-O parser passa a construir uma árvore sintática abstrata durante a análise:
+## Descrição das Etapas
 
-- [ast.h](AST/ast.h) e [ast.c](AST/ast.c): nós (`ASTNode`) com tipo, linha, lexema, tipo de valor, primeiro filho e próximo irmão, além de funções de construção, impressão (`ast_print`) e liberação (`ast_free`);
-- [g-v1.y](AST/g-v1.y): ações semânticas que montam a árvore, com uma camada de expressões por precedência (`||`, `&`, igualdade, relacionais, soma/subtração, multiplicação/divisão, operadores unários e primários);
-- [g-v1.l](AST/g-v1.l): scanner adaptado para devolver o lexema ao parser.
+### 1. Seção 3: Analisadores Léxico e Sintático Integrados
+- **Scanner Flex ([03-geracao-analisadores-sintatico-lexico/g-v1.l](03-geracao-analisadores-sintatico-lexico/g-v1.l))**: Reconhece as palavras-chave (`principal`, `int`, `car`, `leia`, `escreva`, `novalinha`, `se`, `entao`, `senao`, `fimse`, `enquanto`), operadores (`+`, `-`, `*`, `/`, `<`, `>`, `<=`, `>=`, `==`, `!=`, `&`, `||`, `!`, `=`), comentários de múltiplas linhas (`/* ... */`), identificadores e literais. Reporta erros léxicos no formato exigido: `ERRO: CARACTERE INVÁLIDO <linha>`, `ERRO: COMENTÁRIO NAO TERMINA <linha>` e `ERRO: CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA <linha>`.
+- **Parser Bison ([03-geracao-analisadores-sintatico-lexico/g-v1.y](03-geracao-analisadores-sintatico-lexico/g-v1.y))**: Implementa a gramática formal LALR de G-V1, manipula o arquivo de entrada via `yyin` e reporta erros sintáticos no formato `ERRO: syntax error linha <linha>`.
 
-Ao final da análise, o programa imprime a AST.
+### 2. Seção 4: Representação Intermediária (AST)
+- Implementa a estrutura compacta da Árvore Sintática Abstrata baseada nas definições dos slides da disciplina:
+  - Estrutura `Toperador` e enumeração `TespecieOperador` em [04-geracao-representacao-intermediaria/tipos.h](04-geracao-representacao-intermediaria/tipos.h).
+  - Cada nó armazena seu tipo de operador, a linha original no arquivo-fonte, lexema associado e até 3 ponteiros de filhos (`filho1`, `filho2`, `filho3`), suportando comandos de controle como `if-then-else` e expressões binárias/unárias.
 
-### 4. Tabela de símbolos
-[symble_table.h](tabela%20de%20simbolos/symble_table.h) e [symble_table.c](tabela%20de%20simbolos/symble_table.c):
+### 3. Seção 5: Tabela de Símbolos
+- Implementada em [05-tabela-simbolos/tabela_simbolos.h](05-tabela-simbolos/tabela_simbolos.h) e [05-tabela-simbolos/tabela_simbolos.c](05-tabela-simbolos/tabela_simbolos.c) como uma pilha de escopos (tabelas hash com encadeamento de colisões por baldes):
+  - `iniciarPilha()`: Inicializa a pilha de escopos.
+  - `empilharTabela()`: Cria e empilha um novo escopo.
+  - `desempilharTabela()`: Remove o escopo do topo.
+  - `pesquisarNome()`: Busca um símbolo do topo até a base da pilha (suportando sombreamento/shadowing entre blocos internos e externos).
+  - `pesquisarNoEscopoAtual()` / `inserirSimbolo()`: Verifica e insere variáveis no escopo corrente.
+- Inclui suíte de testes unitários em [05-tabela-simbolos/testa_tabela.c](05-tabela-simbolos/testa_tabela.c).
 
-- pilha de escopos, em que cada tabela guarda os símbolos de um escopo;
-- operações `push`/`pop` de escopo, `insert` (retorna erro se o identificador já existe no escopo atual), `lookup` na pilha inteira e `lookup_current` só no escopo atual;
-- cada símbolo guarda nome, tipo, linha de declaração e `offset`/`size`, usados na geração de código.
+### 4. Seção 6: Analisador Semântico
+- Implementado em [06-analise-semantica/semantico.h](06-analise-semantica/semantico.h) e [06-analise-semantica/semantico.c](06-analise-semantica/semantico.c).
+- Percorre a AST da esquerda para a direita, gerenciando a pilha de escopos:
+  - Bloco com declarações abre um novo escopo e insere os identificadores.
+  - Valida uso exclusivo após declaração prévia e proíbe redeclarações no mesmo bloco.
+  - Checagem estrita de tipos:
+    - Atribuição exige tipos idênticos em ambos os lados.
+    - Operações aritméticas (`+`, `-`, `*`, `/`) e unárias (`-`) exigem operandos `int`.
+    - Operações lógicas (`||`, `&`, `!`) exigem operandos `int` e produzem `int`.
+    - Operações relacionais (`<`, `>`, `<=`, `>=`, `==`, `!=`) exigem operandos do mesmo tipo (`int` com `int` ou `car` com `car`) e produzem `int`.
+    - Expressões de controle em `se` e `enquanto` exigem tipo `int`.
+  - Ao encontrar erro semântico, emite `ERRO: <mensagem> linha <linha>` e encerra a compilação com código de erro.
 
-### 5. Análise semântica
-Um percurso na AST que mantém a pilha de escopos. Cada bloco com declarações abre um escopo novo, que é removido ao final do bloco. Verifica:
+### 5. Seção 7: Geração de Código Assembly MIPS
+- Implementado em [07-geracao-de-codigo/gerador.h](07-geracao-de-codigo/gerador.h) e [07-geracao-de-codigo/gerador.c](07-geracao-de-codigo/gerador.c).
+- Gera código Assembly MIPS compatível com simuladores como SPIM e MARS:
+  - Seção `.data`: Aloca cadeias literais com rótulos `str_N`.
+  - Seção `.text`: Inicializa o frame pointer (`move $fp, $sp`) no ponto de entrada `main`.
+  - Alocação de variáveis na pilha com cálculo de `offset` negativo em relação a `$fp`.
+  - Blocos aninhados alocam e desalocam espaço no frame da pilha via `$sp`.
+  - Avaliação de expressões com resultado acumulado em `$s0`, usando a pilha (`$sp`) para salvar subexpressões.
+  - Suporte completo a chamadas de sistema MIPS (`syscall`):
+    - `leia` (inteiro: syscall 5; caractere: syscall 12);
+    - `escreva` (inteiro: syscall 1; caractere: syscall 11; cadeia: syscall 4);
+    - `novalinha` (syscall 11 com caractere `'\n'`);
+    - Encerramento do programa com syscall 10 (exit).
 
-- identificadores declarados antes do uso e sem redeclaração no mesmo escopo;
-- atribuição com tipos iguais;
-- operadores aritméticos e lógicos só sobre `int`, relacionais e de igualdade sobre operandos do mesmo tipo;
-- condições de `se` e `enquanto` do tipo `int`.
 
-Os erros saem como `ERRO: mensagem linha N`.
+## Pasta de Entrega (`entrega/`)
 
-### 6. Geração de código
-[codegen.c](geracao%20de%20codigo/codegen.c) percorre a AST e gera assembly MIPS que roda no SPIM ou no MARS:
-
-- um único quadro de pilha guarda todas as variáveis. Cada símbolo recebe um `offset` a partir de `$fp`, com 4 bytes para `int` e 1 byte para `car`. Blocos aninhados usam o espaço logo depois do bloco externo e o liberam ao terminar;
-- expressões deixam o resultado em `$t0`. Em operações binárias, o operando da esquerda é guardado na pilha enquanto o da direita é calculado;
-- `||` e `&` avaliam o lado direito só se for necessário;
-- `se`, `senao` e `enquanto` viram desvios com rótulos únicos;
-- `leia`, `escreva` e `novalinha` usam `syscall` (inteiro ou caractere, conforme o tipo);
-- cadeias de caracteres vão para a seção `.data`.
-
-### 7. Makefile e testes
-O [Makefile](final/Makefile) gera o `g-v1` com `make`. O script [rodar_testes.sh](final/rodar_testes.sh) compila os programas de [final/testes/ok/](final/testes/ok/), executa o assembly no SPIM e compara a saída esperada. Também confere que os programas de [final/testes/erro/](final/testes/erro/) são rejeitados com a mensagem certa.
-
-## A linguagem G-V1
-
-Os programas têm extensão `.g`. Um programa tem a palavra `principal`, um bloco opcional de declaração de variáveis e um bloco de comandos:
+A pasta [entrega/](entrega/) foi preparada rigorosamente de acordo com as exigências da **Seção 8** do `Parte1.pdf` para ser compactada e submetida na plataforma:
 
 ```
-principal {
-    x: int;
-    y: int;
-} {
-    x = 10 + y;
-    escreva x;
-    novalinha;
-}
+entrega/
+├── Makefile            # Script de compilação compatível com Linux e GCC 14
+├── g-v1.l              # Especificação léxica para Flex
+├── g-v1.y              # Especificação sintática/AST para Bison
+├── tipos.h             # Definições da AST e nós
+├── tabela_simbolos.h   # Cabeçalho da tabela de símbolos
+├── tabela_simbolos.c   # Implementação da pilha de escopos
+├── semantico.h         # Cabeçalho do analisador semântico
+├── semantico.c         # Implementação das regras e checagem semântica
+├── gerador.h           # Cabeçalho do gerador de código MIPS
+└── gerador.c           # Implementação da geração de código MIPS
 ```
 
-Tipos: `int` e `car`. Comandos: atribuição, `leia`, `escreva` (expressão ou cadeia), `novalinha`, `se ... entao ... [senao ...] fimse` e `enquanto`.
 
-## Como compilar e executar
+## Como Compilar e Executar
 
-Requer `flex`, `bison` e `gcc`. A especificação usa Flex 2.6.4 e Bison 3.8.2.
+### Pré-requisitos
+- **GCC / G++**: versão 14 (conforme especificado no trabalho);
+- **Flex**: versão 2.6.4;
+- **Bison**: versão 3.8.2;
+- **SPIM** (opcional, para execução do assembly gerado).
 
-```sh
-cd final
-make                       # gera o executavel g-v1
-./g-v1 programa.g          # gera programa.s
-./g-v1 programa.g saida.s  # escolhe o nome do arquivo de saida
-./g-v1 --ast programa.g    # tambem imprime a AST
-spim -file programa.s      # executa o assembly gerado
+### Compilação do Compilador
+
+Basta entrar no diretório `entrega/` (ou `07-geracao-de-codigo/`) e executar `make`:
+
+```bash
+cd entrega
+make
 ```
 
-Testes (precisam do `spim`, por exemplo `brew install spim`):
+O comando gerará o executável `g-v1`.
 
-```sh
+### Execução do Compilador
+
+O compilador aceita o arquivo de entrada em G-V1 e, opcionalmente, o nome do arquivo MIPS de saída:
+
+```bash
+# Gera automaticamente <arquivo>.asm
+./g-v1 arquivo.g
+
+# Ou especificando o arquivo de saída
+./g-v1 arquivo.g saida.asm
+```
+
+### Execução do Código MIPS no SPIM
+
+```bash
+spim -file arquivo.asm
+```
+
+
+## Bateria de Testes (`testes_G-v1/`)
+
+Os testes estão organizados em subpastas dentro de [testes_G-v1/](testes_G-v1/) seguindo a convenção de nomenclatura do projeto:
+
+- `testes_G-v1/Corretos/`: Programas sintática e semanticamente corretos (`Aritmetica.g`, `Caracteres.g`, `Comentarios.g`, `Controle.g`, `CurtoCircuito.g`, `Escopo.g`, `FatorialSimples.g`, `Leitura.g`, `Minimo.g`, `NotaEmConceito.g`, `PA.g`, `Relacionais.g`, `SeqOrdenada.g`, `Soma.g`, `fatorial.g`).
+- `testes_G-v1/ErroLexico/`: Testes que exercitam erros léxicos no padrão `<Base>-<DescricaoErro>Lin<N>.g`.
+- `testes_G-v1/ErroSintatico/`: Testes que exercitam erros de sintaxe no padrão `<Base>-<DescricaoErro>Lin<N>.g`.
+- `testes_G-v1/ErroSemantico/`: Testes que exercitam erros de escopo, tipos e operadores no padrão `<Base>-<DescricaoErro>Lin<N>.g`.
+
+Para rodar todos os testes automatizados a partir da pasta de entrega:
+
+```bash
+cd entrega
 make test
-make clean
-```
-
-No macOS o Bison do sistema é o 2.3. Para usar o 3.8.2 do Homebrew: `make BISON=/opt/homebrew/opt/bison/bin/bison`.
-
-As etapas anteriores seguem o mesmo fluxo (`bison -d`, `flex`, `gcc`), sem os arquivos das fases seguintes.
-
-## Estrutura
-
-```
-.
-├── analise lexica/                              # 1. scanner (Flex)
-├── analise lexica e sintatica com flex e bison/ # 2. scanner + parser (Flex + Bison)
-├── AST/                                         # 3. construção e impressão da AST
-├── tabela de simbolos/                          # 4. tabela de símbolos (escopos)
-├── analise semantica/                           # 5. análise semântica
-├── geracao de codigo/                           # 6. geração de código MIPS
-└── final/                                       # 7. versão final: Makefile e testes
 ```

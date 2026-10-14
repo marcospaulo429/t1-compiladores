@@ -1,5 +1,11 @@
 # arquivos gerados pelo flex, bison e gcc
 g-v1.tab.c
+g-v1.tab.o
 g-v1.tab.h
 lex.yy.c
+lex.yy.o
 g-v1
+*.asm
+*.o
+testa_tabela
+.DS_Store
