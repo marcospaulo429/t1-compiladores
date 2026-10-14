@@ -23,6 +23,26 @@ extern YYSTYPE yylval;
         yylloc.first_column = 0;                   \
         yylloc.last_column = 0;                    \
     }
+
+/*
+ * Último token retornado para o parser. Serve para saber se um
+ * '+' ou '-' antes de um número é sinal ou operador (veja INTCONST).
+ */
+static int ultimo_token = 0;
+
+#define RETORNA(t)          \
+    {                       \
+        ultimo_token = (t); \
+        return (t);         \
+    }
+
+static int anterior_eh_operando(void)
+{
+    return ultimo_token == IDENTIFICADOR
+        || ultimo_token == INTCONST
+        || ultimo_token == CARCONST
+        || ultimo_token == ')';
+}
 %}
 
 %option noyywrap
@@ -33,47 +53,47 @@ extern YYSTYPE yylval;
 %%
 
 "principal" {
-    return PRINCIPAL;
+    RETORNA(PRINCIPAL);
 }
 
 "int" {
-    return INT;
+    RETORNA(INT);
 }
 
 "car" {
-    return CAR;
+    RETORNA(CAR);
 }
 
 "leia" {
-    return LEIA;
+    RETORNA(LEIA);
 }
 
 "escreva" {
-    return ESCREVA;
+    RETORNA(ESCREVA);
 }
 
 "novalinha" {
-    return NOVALINHA;
+    RETORNA(NOVALINHA);
 }
 
 "se" {
-    return SE;
+    RETORNA(SE);
 }
 
 "entao" {
-    return ENTAO;
+    RETORNA(ENTAO);
 }
 
 "senao" {
-    return SENAO;
+    RETORNA(SENAO);
 }
 
 "fimse" {
-    return FIMSE;
+    RETORNA(FIMSE);
 }
 
 "enquanto" {
-    return ENQUANTO;
+    RETORNA(ENQUANTO);
 }
 
 
@@ -82,41 +102,48 @@ extern YYSTYPE yylval;
    */
 
 "||" {
-    return OU;
+    RETORNA(OU);
 }
 
 "&" {
-    return E;
+    RETORNA(E);
 }
 
 "==" {
-    return IGUAL;
+    RETORNA(IGUAL);
 }
 
 "!=" {
-    return DIFERENTE;
+    RETORNA(DIFERENTE);
 }
 
 ">=" {
-    return MAIORIGUAL;
+    RETORNA(MAIORIGUAL);
 }
 
 "<=" {
-    return MENORIGUAL;
+    RETORNA(MENORIGUAL);
 }
 
 
   /*
-   * Constante inteira.
+   * Constante inteira, com ou sem sinal (+ ou -).
    *
-   * O sinal não entra no token: se entrasse, "n-1" viraria
-   * IDENTIFICADOR seguido de INTCONST "-1" e daria erro de
-   * sintaxe. O "-" de "-5" é tratado pela regra UnExpr -> '-' PrimExpr.
+   * Cuidado: em "n-1" o Flex pegaria "-1" como número (é o casamento
+   * mais longo) e o parser veria IDENTIFICADOR INTCONST, que é erro de
+   * sintaxe. Por isso, se o token anterior for um operando, o sinal é
+   * operador: devolvemos o resto para a entrada com yyless(1) e
+   * retornamos só o '+' ou '-'.
    */
 
-[0-9]+ {
+[+-]?[0-9]+ {
+    if ((yytext[0] == '+' || yytext[0] == '-') && anterior_eh_operando()) {
+        yyless(1);
+        RETORNA(yytext[0]);
+    }
+
     yylval.str = strdup(yytext);
-    return INTCONST;
+    RETORNA(INTCONST);
 }
 
 
@@ -132,7 +159,7 @@ extern YYSTYPE yylval;
 
 \'([^\\\n']|\\.)\' {
     yylval.str = strdup(yytext);
-    return CARCONST;
+    RETORNA(CARCONST);
 }
 
 
@@ -145,7 +172,7 @@ extern YYSTYPE yylval;
 
 \"([^\\\n\"]|\\.)*\" {
     yylval.str = strdup(yytext);
-    return CADEIACARACTERES;
+    RETORNA(CADEIACARACTERES);
 }
 
 
@@ -211,7 +238,7 @@ extern YYSTYPE yylval;
 
 [A-Za-z_][A-Za-z0-9_]* {
     yylval.str = strdup(yytext);
-    return IDENTIFICADOR;
+    RETORNA(IDENTIFICADOR);
 }
 
 
@@ -229,63 +256,63 @@ extern YYSTYPE yylval;
    */
 
 "{" {
-    return '{';
+    RETORNA('{');
 }
 
 "}" {
-    return '}';
+    RETORNA('}');
 }
 
 "(" {
-    return '(';
+    RETORNA('(');
 }
 
 ")" {
-    return ')';
+    RETORNA(')');
 }
 
 "," {
-    return ',';
+    RETORNA(',');
 }
 
 ":" {
-    return ':';
+    RETORNA(':');
 }
 
 ";" {
-    return ';';
+    RETORNA(';');
 }
 
 "+" {
-    return '+';
+    RETORNA('+');
 }
 
 "-" {
-    return '-';
+    RETORNA('-');
 }
 
 "*" {
-    return '*';
+    RETORNA('*');
 }
 
 "/" {
-    return '/';
+    RETORNA('/');
 }
 
 "<" {
-    return '<';
+    RETORNA('<');
 }
 
 ">" {
-    return '>';
+    RETORNA('>');
 }
 
 "=" {
-    return '=';
+    RETORNA('=');
 }
 
 "!" {
-    return '!';
+    RETORNA('!');
 }
 
 

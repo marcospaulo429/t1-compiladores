@@ -85,6 +85,9 @@ for g in erro/*.g; do
         falha "$nome" "deveria falhar e compilou"
     elif [ -e "$TMP/$nome.s" ]; then
         falha "$nome" "gerou assembly mesmo com erro"
+    elif [ "$(wc -l <"$TMP/$nome.log")" -ne 1 ]; then
+        # o compilador tem que parar no primeiro erro
+        falha "$nome" "mostrou mais de uma mensagem de erro"
     elif grep -qF -- "$esperado" "$TMP/$nome.log"; then
         ok "$nome"
     else

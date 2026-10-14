@@ -36,6 +36,12 @@ static void semantic_error(
     );
 
     errors++;
+
+    /*
+     * O enunciado pede para reportar o erro semântico
+     * e terminar a compilação, então paramos no primeiro.
+     */
+    exit(1);
 }
 
 
