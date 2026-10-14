@@ -17,6 +17,7 @@ está na branch `desenvolvimento`.
 ```
 .
 ├── Parte1.pdf          enunciado
+├── Dockerfile          ambiente Linux para compilar e testar
 ├── trabalho-final/     codigo do compilador (pasta que e entregue)
 │   ├── Makefile
 │   ├── g-v1.l          analisador lexico (Flex)
@@ -69,6 +70,17 @@ nota em conceito, PA, soma, sequência ordenada e fatorial vieram dos testes que
 juntou; os outros a gente escreveu para testar cada parte da linguagem.
 
 Rodamos tudo em Linux (container `gcc:14`) e no macOS: `41 passaram, 0 falharam`.
+
+### Testando com Docker
+
+Para testar no mesmo ambiente do enunciado sem instalar nada, tem um `Dockerfile` na raiz.
+Ele usa a imagem `gcc:14` e instala Flex, Bison e SPIM:
+
+```sh
+docker build -t g-v1 .
+docker run --rm g-v1              # compila e roda os testes
+docker run --rm -it g-v1 bash     # abre um terminal no container
+```
 
 ## O que o enunciado pede e onde está
 

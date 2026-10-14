@@ -1,0 +1,8 @@
+.git
+Parte1.pdf
+trabalho-final/g-v1
+trabalho-final/g-v1.tab.c
+trabalho-final/g-v1.tab.h
+trabalho-final/lex.yy.c
+**/*.o
+**/*.s
