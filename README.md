@@ -1,16 +1,26 @@
 # Trabalho 1 - Compilador para a linguagem G-V1
 
+**Alunos:** Marcos Paulo Caetano e Giordana Bucci
+
 Compiladores - Instituto de Informática (UFG), 2026-2
 Prof. Thierson Couto Rosa
 
-Alunos: Marcos Paulo e Giordana
+Repositório: <https://github.com/marcospaulo429/t1-compiladores>
 
 Compilador para a linguagem G-V1 feito em C com Flex e Bison. Ele lê um programa `.g`,
 faz a análise léxica, sintática e semântica e, se não tiver erro, gera o código em assembly
-MIPS, que pode ser executado no SPIM ou no MARS.
+MIPS, que pode ser executado no SPIM ou no MARS. O enunciado está em `Parte1.pdf` no
+repositório.
 
-O enunciado está em [Parte1.pdf](Parte1.pdf). O histórico de como fomos fazendo cada etapa
-está na branch `desenvolvimento`.
+## Branches do repositório
+
+- **`master`**: a versão final do trabalho, que é a que foi entregue (este README, a pasta
+  `trabalho-final/` e os testes).
+- **`desenvolvimento`**: o histórico de como fomos fazendo. Tem a pasta `marcos/`, com uma
+  pasta para cada etapa (léxico, sintático, AST, tabela de símbolos, semântico e geração de
+  código), e a pasta `giordana/`, com a versão que a Giordana fez em paralelo e os testes que
+  ela juntou. A versão final partiu do código das etapas do Marcos, com as correções e os
+  testes que vieram da comparação com a versão da Giordana.
 
 ## Organização
 
