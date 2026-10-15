@@ -19,9 +19,7 @@ static SymbolTableStack symbol_stack;
 static int errors = 0;
 
 
-/* =========================================================
-   ERROS
-   ========================================================= */
+
 
 static void semantic_error(
     int line,
@@ -45,9 +43,7 @@ static void semantic_error(
 }
 
 
-/* =========================================================
-   TIPOS
-   ========================================================= */
+
 
 static const char *type_name(
     ValueType type
@@ -67,18 +63,14 @@ static const char *type_name(
 }
 
 
-/* =========================================================
-   DECLARAÇÃO
-   ========================================================= */
+
 
 static void analyze_var_section(
     ASTNode *node
 );
 
 
-/* =========================================================
-   EXPRESSÕES
-   ========================================================= */
+
 
 static ValueType analyze_expression(
     ASTNode *node
@@ -266,9 +258,7 @@ static ValueType analyze_binary(
     switch (node->kind) {
 
         /*
-         * ------------------------------------------
          * Operações aritméticas
-         * ------------------------------------------
          */
 
         case AST_ADD:
@@ -297,9 +287,7 @@ static ValueType analyze_binary(
 
 
         /*
-         * ------------------------------------------
          * Operadores relacionais
-         * ------------------------------------------
          */
 
         case AST_LT:
@@ -332,9 +320,7 @@ static ValueType analyze_binary(
 
 
         /*
-         * ------------------------------------------
          * Igualdade
-         * ------------------------------------------
          */
 
         case AST_EQ:
@@ -358,9 +344,7 @@ static ValueType analyze_binary(
 
 
         /*
-         * ------------------------------------------
          * Operadores lógicos
-         * ------------------------------------------
          */
 
         case AST_OR:
@@ -598,9 +582,6 @@ static ValueType analyze_expression(
 }
 
 
-/* =========================================================
-   DECLARAÇÕES
-   ========================================================= */
 
 static void analyze_var_section(
     ASTNode *node
@@ -667,10 +648,6 @@ static void analyze_var_section(
     }
 }
 
-
-/* =========================================================
-   COMANDOS
-   ========================================================= */
 
 static void analyze_command(
     ASTNode *node
@@ -1003,9 +980,6 @@ static void analyze_command(
 }
 
 
-/* =========================================================
-   ANÁLISE SEMÂNTICA COMPLETA
-   ========================================================= */
 
 int semantic_analyze(
     ASTNode *root

@@ -83,10 +83,6 @@ static StringEntry *strings_tail = NULL;
 static int string_count = 0;
 
 
-/* =========================================================
-   UTILIDADES
-   ========================================================= */
-
 static int new_label(void)
 {
     return label_count++;
@@ -247,9 +243,7 @@ static int char_value(
 }
 
 
-/* =========================================================
-   TIPO DE UMA EXPRESSÃO
-   ========================================================= */
+
 
 /*
  * Necessário para escolher entre imprimir um inteiro
@@ -298,9 +292,7 @@ static ValueType expression_type(
 }
 
 
-/* =========================================================
-   TAMANHO DO QUADRO
-   ========================================================= */
+
 
 static int command_frame(
     ASTNode *node
@@ -444,9 +436,7 @@ static int command_frame(
 }
 
 
-/* =========================================================
-   EXPRESSÕES
-   ========================================================= */
+
 
 static void gen_expression(
     ASTNode *node
@@ -751,9 +741,7 @@ static void gen_expression(
 }
 
 
-/* =========================================================
-   COMANDOS
-   ========================================================= */
+
 
 static void gen_command(
     ASTNode *node
@@ -1072,9 +1060,7 @@ static void gen_command(
 }
 
 
-/* =========================================================
-   PROGRAMA
-   ========================================================= */
+
 
 /*
  * Emite uma cadeia sem depender de como cada simulador
