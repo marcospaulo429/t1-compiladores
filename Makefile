@@ -1,7 +1,7 @@
 ifeq ($(origin CC),default)
   CC = gcc
 endif
-TEST_DIR = ../test
+TEST_DIR = ./test
 
 # Alvo principal: compila e liga o compilador g-v1 completo
 g-v1: g-v1.tab.o lex.yy.o tabela_simbolos.o semantico.o gerador.o
