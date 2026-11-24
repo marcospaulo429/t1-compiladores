@@ -1,6 +1,6 @@
-principal {
+principal [
     x: int;
-} {
+] {
     x = 5;
     escreva x < 6; escreva x > 6; escreva x <= 5; escreva x >= 6;
     escreva x == 5; escreva x != 5; novalinha;

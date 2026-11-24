@@ -1,6 +1,6 @@
-principal {
+principal [
     i, soma, pares: int;
-} {
+] {
     soma = 0; pares = 0;
     i = 1;
     enquanto (i <= 10) {

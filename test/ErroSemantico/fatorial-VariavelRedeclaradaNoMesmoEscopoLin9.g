@@ -4,10 +4,10 @@ de um numero. Enquanto um valor negativo for digitado o programa emite uma mensa
 que o usuário digite um numero nao negativo. Quando o usuario digitar um numero nao negativo,
 o programa computa e emite o valor do fatorial desse numero.  */
 
-	{
+	[
 		fatorial,i,n:int;
 		fatorial:int;
-	}
+	]
 	{
 		n=-1;
 		enquanto (n<=0)

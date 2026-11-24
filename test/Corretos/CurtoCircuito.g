@@ -1,6 +1,6 @@
-principal {
+principal [
     x: int;
-} {
+] {
     x = 0;
     se (0 & (x = 5)) entao escreva "no"; fimse
     escreva x; novalinha;

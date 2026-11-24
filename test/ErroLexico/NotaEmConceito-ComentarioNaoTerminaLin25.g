@@ -1,8 +1,8 @@
 principal
-{
+[
     nota: int;
     conceito: car;
-}
+]
 {
     leia nota;
     se (nota >= 90) entao

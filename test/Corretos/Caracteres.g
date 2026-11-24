@@ -1,7 +1,7 @@
-principal {
+principal [
     c, d: car;
     i: int;
-} {
+] {
     c = 'A';
     d = c;
     escreva c; escreva d; novalinha;

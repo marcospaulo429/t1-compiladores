@@ -1,6 +1,6 @@
-principal {
+principal [
     a, b: int;
-} {
+] {
     leia a;
     leia b;
     escreva "soma: ";

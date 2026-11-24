@@ -2,9 +2,9 @@ principal
 /*Este programa calcula o valor do n-esimo termos de uma progressao aritmetica. 
 O programa pede ao usuário o valor do termo inicial da progressao, a posicao n do termo e o
 valor da razao da progressao.*/
-	{
+	[
 		a1,n,r:int;
-	}
+	]
 	{
 		escreva "Digite o valor do termo inical da progressao aritmetica";
 		novalinha;
@@ -15,9 +15,9 @@ valor da razao da progressao.*/
 		escreva "Digite a razao da progressao";
 		novalinha;
 		leia r;
-		{
+		[
 			i,an: int;
-		}
+		]
 		{
 			i=1;
 			an=a1;

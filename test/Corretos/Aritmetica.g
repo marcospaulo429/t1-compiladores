@@ -1,6 +1,6 @@
-principal {
+principal [
     a, b, c: int;
-} {
+] {
     a = 7;
     b = 3;
     escreva a + b; novalinha;

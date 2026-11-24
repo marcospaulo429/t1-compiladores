@@ -1,7 +1,7 @@
 principal 
-	{
+	[
 		a1,r,n:int;
-	}
+	]
 	{
 		escreva "Digite o valor do termo inical da progressao aritmetica";
 		novalinha;
@@ -12,9 +12,9 @@ principal
 		escreva "Digite a razao da progressao";
 		novalinha;
 		leia r;
-		{
+		[
 			soma,i,an: int;
-		}
+		]
 		{  
 			soma=a1;
 			i=1;

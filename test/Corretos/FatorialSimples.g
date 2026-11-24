@@ -1,6 +1,6 @@
-principal {
+principal [
     n, f: int;
-} {
+] {
     leia n;
     f = 1;
     enquanto (n > 1) {

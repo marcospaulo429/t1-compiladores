@@ -4,17 +4,17 @@ Se for digitado o valor zero o programa termina. Caso contrário ele pede para o
 uma squência de números inteiros de tamanho igual ao tamanho especificado. Em seguida, o programa
 imprime uma mensagem indicando de a sequência foi digitada em ordem crescente ou não. */
 
-	{
+	[
 		quant: int;
-	}
+	]
 	{
 		escreva "digite o tamanho de uma sequencia de numeros inteiros - digite 0 para terminar.";
 		leia quant;
 		enquanto (quant != 0)
-		{
+		[
 			cont, valAtual:int;
 			ordenado:car;
-		}
+		]
 		{	
 			ordenado='v';
 			cont=1;
@@ -23,9 +23,9 @@ imprime uma mensagem indicando de a sequência foi digitada em ordem crescente o
 			escreva quant;
 			escreva " numeros inteiros separados entre si por um espaco";
 			enquanto (cont < quant)
-			{
+			[
 				proxVal: int; /*Variavel declarada dentro de bloco */
-			}
+			]
 			{
 				leia proxVal;
 				se (valAtual < proxVal)
