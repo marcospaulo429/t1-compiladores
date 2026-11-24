@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tipos.h"
-#include "g-v1.tab.h"
+#include "g-v2.tab.h"
 %}
 
 %option noyywrap
@@ -38,9 +38,12 @@
 }
 
 
+"global"    { return GLOBAL; }
+"funcao"    { return FUNCAO; }
 "principal" { return PRINCIPAL; }
 "int"       { return INT; }
 "car"       { return CAR; }
+"retorne"   { return RETORNE; }
 "leia"      { return LEIA; }
 "escreva"   { return ESCREVA; }
 "novalinha" { return NOVALINHA; }
@@ -57,6 +60,8 @@
 "&"         { return E; }
 
 "<="        { return MENORIGUAL; }
+"["         { return '['; }
+"]"         { return ']'; }
 "{"         { return '{'; }
 "}"         { return '}'; }
 "("         { return '('; }
