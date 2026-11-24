@@ -230,7 +230,7 @@ static TipoDado checarExpressao(Toperador * expr) {
             TipoDado t1 = checarExpressao(expr->filho1);
             TipoDado t2 = checarExpressao(expr->filho2);
             if (t1 != t2 || ehVetor(t1)) {
-                erroSemantico("operador relacional exige operandos de mesmo tipo básico", expr->linha);
+                erroSemantico("operador relacional exige operandos de mesmo tipo", expr->linha);
             }
             return TIPO_INT;
         }
