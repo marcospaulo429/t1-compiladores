@@ -4,11 +4,16 @@
 typedef enum{
     /* Estrutura do Programa e Declarações */
     noProg,
+    noLstFunc,
+    noFuncao,
+    noLstParam,
+    noParam,
     noBloco,
     noVarSec,
     noLstDecl,
     noDeclVar,
     noLstId,
+    noIdVet,
     noTipoInt,
     noTipoCar,
 
@@ -19,6 +24,7 @@ typedef enum{
     noLeia,
     noEscreva,
     noEscrevaCadeia,
+    noRetorne,
     noNovalinha,
     noSe,
     noSeSenao,
@@ -46,6 +52,9 @@ typedef enum{
 
     /* Folhas / Terminais */
     noId,
+    noIndice,
+    noChamada,
+    noLstExpr,
     noIntConst,
     noCarConst,
     noCadConst
@@ -55,6 +64,7 @@ typedef struct operador {
     TespecieOperador tipoOperador;
     int linha;
     char * lexema;
+    int numero; /* noIdVet: tamanho do vetor; noParam: 1 se o parametro e vetor */
     struct operador * filho1;
     struct operador * filho2;
     struct operador * filho3; /* Terceiro filho (necessário para if-then-else: cond, then, else) */

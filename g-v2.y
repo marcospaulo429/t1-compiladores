@@ -19,8 +19,6 @@ Toperador * criaOperador(TespecieOperador tipoOperador, int linha, Toperador * f
 void percorreArvore(Toperador * raiz);
 void obtemEspecieNoEnumLin(Toperador* no, char* nomeOperador);
 
-void testaTabelaSimbolosAST(Toperador *no, PilhaTabelas *pilha);
-
 Toperador * raiz = NULL;
 char nomeOperador[200];
 %}
@@ -39,52 +37,117 @@ char nomeOperador[200];
 %token <numlexema> CADEIACARACTERES
 
 /* Tokens simples */
-%token PRINCIPAL
+%token GLOBAL FUNCAO PRINCIPAL
 %token INT CAR
-%token LEIA ESCREVA NOVALINHA
+%token RETORNE LEIA ESCREVA NOVALINHA
 %token SE ENTAO SENAO FIMSE ENQUANTO
 %token OU E IGUAL DIFERENTE MAIORIGUAL MENORIGUAL
 
 /* Não-terminais */
-%type <Tpont> Programa DeclPrograma Bloco VarSection ListaDeclVar DeclVar Tipo
-%type <Tpont> ListaComando Comando Expr OrExpr AndExpr EqExpr DesigExpr AddExpr MulExpr UnExpr PrimExpr
+%type <Tpont> Programa DeclVarGlobais DeclFunc ListaFuncoes ListaParametros ListaParametrosTail
+%type <Tpont> DeclPrograma Bloco VarSection ListaDeclVar ListVar Tipo
+%type <Tpont> ListaComando Comando Expr LValueExpr OrExpr AndExpr EqExpr DesigExpr AddExpr MulExpr UnExpr PrimExpr ListExpr
 %%
 /* Produções da gramática */
-Programa    : DeclPrograma  { raiz = $1; $$ = $1; }
+Programa    : DeclVarGlobais DeclFunc DeclPrograma
+                    {
+                        $$ = criaOperador(noProg, yylineno, $1, $2, $3, NULL);
+                        raiz = $$;
+                    }
     ;
 
-DeclPrograma: PRINCIPAL Bloco   { $$ = criaOperador(noProg, yylineno, $2, NULL, NULL, NULL); }
+DeclVarGlobais  : GLOBAL VarSection { $$ = $2; }
+                | /* Cadeia Vazia */ { $$ = NULL; }
+    ;
+
+VarSection  : '[' ListaDeclVar ']' { $$ = criaOperador(noVarSec, yylineno, $2, NULL, NULL, NULL); }
+    ;
+
+ListaDeclVar: ListVar ':' Tipo ';' ListaDeclVar
+                {
+                    Toperador *decl = criaOperador(noDeclVar, yylineno, $1, $3, NULL, NULL);
+                    $$ = criaOperador(noLstDecl, yylineno, decl, $5, NULL, NULL);
+                }
+                | ListVar ':' Tipo ';'
+                {
+                    Toperador *decl = criaOperador(noDeclVar, yylineno, $1, $3, NULL, NULL);
+                    $$ = criaOperador(noLstDecl, yylineno, decl, NULL, NULL, NULL);
+                }
+    ;
+
+ListVar     : IDENTIFICADOR ',' ListVar
+                {
+                    Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
+                    $$ = criaOperador(noLstId, yylineno, id, $3, NULL, NULL);
+                }
+                | IDENTIFICADOR '[' INTCONST ']' ',' ListVar
+                {
+                    Toperador *id = criaOperador(noIdVet, yylineno, NULL, NULL, NULL, $1);
+                    id->numero = atoi($3);
+                    $$ = criaOperador(noLstId, yylineno, id, $6, NULL, NULL);
+                }
+                | IDENTIFICADOR
+                {
+                    Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
+                    $$ = criaOperador(noLstId, yylineno, id, NULL, NULL, NULL);
+                }
+                | IDENTIFICADOR '[' INTCONST ']'
+                {
+                    Toperador *id = criaOperador(noIdVet, yylineno, NULL, NULL, NULL, $1);
+                    id->numero = atoi($3);
+                    $$ = criaOperador(noLstId, yylineno, id, NULL, NULL, NULL);
+                }
+    ;
+
+DeclFunc    : FUNCAO '[' IDENTIFICADOR '(' ListaParametros ')' ':' Tipo Bloco ListaFuncoes ']'
+                {
+                    Toperador *f = criaOperador(noFuncao, yylineno, $5, $8, $9, $3);
+                    $$ = criaOperador(noLstFunc, yylineno, f, $10, NULL, NULL);
+                }
+                | /* Cadeia Vazia */ { $$ = NULL; }
+    ;
+
+ListaFuncoes: IDENTIFICADOR '(' ListaParametros ')' ':' Tipo Bloco ListaFuncoes
+                {
+                    Toperador *f = criaOperador(noFuncao, yylineno, $3, $6, $7, $1);
+                    $$ = criaOperador(noLstFunc, yylineno, f, $8, NULL, NULL);
+                }
+                | /* Cadeia Vazia */ { $$ = NULL; }
+    ;
+
+ListaParametros : ListaParametrosTail { $$ = $1; }
+                | /* Cadeia Vazia */ { $$ = NULL; }
+    ;
+
+ListaParametrosTail : IDENTIFICADOR ':' Tipo
+                {
+                    Toperador *p = criaOperador(noParam, yylineno, $3, NULL, NULL, $1);
+                    $$ = criaOperador(noLstParam, yylineno, p, NULL, NULL, NULL);
+                }
+                | IDENTIFICADOR '[' ']' ':' Tipo
+                {
+                    Toperador *p = criaOperador(noParam, yylineno, $5, NULL, NULL, $1);
+                    p->numero = 1;
+                    $$ = criaOperador(noLstParam, yylineno, p, NULL, NULL, NULL);
+                }
+                | IDENTIFICADOR ':' Tipo ',' ListaParametrosTail
+                {
+                    Toperador *p = criaOperador(noParam, yylineno, $3, NULL, NULL, $1);
+                    $$ = criaOperador(noLstParam, yylineno, p, $5, NULL, NULL);
+                }
+                | IDENTIFICADOR '[' ']' ':' Tipo ',' ListaParametrosTail
+                {
+                    Toperador *p = criaOperador(noParam, yylineno, $5, NULL, NULL, $1);
+                    p->numero = 1;
+                    $$ = criaOperador(noLstParam, yylineno, p, $7, NULL, NULL);
+                }
+    ;
+
+DeclPrograma: PRINCIPAL Bloco   { $$ = $2; }
     ;
 
 Bloco       : '{' ListaComando '}'  { $$ = criaOperador(noBloco, yylineno, NULL, $2, NULL, NULL); }
                 | VarSection '{' ListaComando '}'   {$$ = criaOperador(noBloco, yylineno, $1, $3, NULL, NULL); }
-    ;
-
-VarSection  : '{' ListaDeclVar '}' { $$ = criaOperador(noVarSec, yylineno, $2, NULL, NULL, NULL); }
-    ;
-
-ListaDeclVar: IDENTIFICADOR DeclVar ':' Tipo ';' ListaDeclVar
-                {
-                    Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
-                    Toperador *lstIds = criaOperador(noLstId, yylineno, id, $2, NULL, NULL);
-                    Toperador *decl = criaOperador(noDeclVar, yylineno, lstIds, $4, NULL, NULL);
-                    $$ = criaOperador(noLstDecl, yylineno, decl, $6, NULL, NULL);
-                }
-                | IDENTIFICADOR DeclVar ':' Tipo ';'
-                    { 
-                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
-                        Toperador *lstIds = criaOperador(noLstId, yylineno, id, $2, NULL, NULL);
-                        Toperador *decl = criaOperador(noDeclVar, yylineno, lstIds, $4, NULL, NULL);
-                        $$ = criaOperador(noLstDecl, yylineno, decl, NULL, NULL, NULL);
-                    }
-    ;
-
-DeclVar     : /* Cadeia Vazia */    { $$ = NULL; }
-                | ',' IDENTIFICADOR DeclVar
-                    { 
-                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $2);
-                        $$ = criaOperador(noLstId, yylineno, id, $3, NULL, NULL);
-                    }
     ;
 
 Tipo        : INT   { $$ = criaOperador(noTipoInt, yylineno, NULL, NULL, NULL, "int"); }
@@ -97,11 +160,8 @@ ListaComando: Comando   { $$ = criaOperador(noLstCmd, yylineno, $1, NULL, NULL, 
 
 Comando     : ';'   { $$ = criaOperador(noCmdVazio, yylineno, NULL, NULL, NULL, NULL); }
                 | Expr ';'  { $$ = $1; }
-                | LEIA IDENTIFICADOR ';'
-                    { 
-                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $2);
-                        $$ = criaOperador(noLeia, yylineno, id, NULL, NULL, NULL);
-                    }
+                | RETORNE Expr ';'  { $$ = criaOperador(noRetorne, yylineno, $2, NULL, NULL, NULL); }
+                | LEIA LValueExpr ';'   { $$ = criaOperador(noLeia, yylineno, $2, NULL, NULL, NULL); }
                 | ESCREVA Expr ';'  { $$ = criaOperador(noEscreva, yylineno, $2, NULL, NULL, NULL); }
                 | ESCREVA CADEIACARACTERES ';'
                     { 
@@ -115,12 +175,16 @@ Comando     : ';'   { $$ = criaOperador(noCmdVazio, yylineno, NULL, NULL, NULL, 
                 | Bloco   { $$ = $1; }
     ;
 
-Expr        : OrExpr    { $$ = $1; }
-                | IDENTIFICADOR '=' Expr
-                    { 
+Expr        : LValueExpr '=' Expr   { $$ = criaOperador(noAtrib, yylineno, $1, $3, NULL, NULL); }
+                | OrExpr    { $$ = $1; }
+    ;
+
+LValueExpr  : IDENTIFICADOR '[' Expr ']'
+                    {
                         Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
-                        $$ = criaOperador(noAtrib, yylineno, id, $3, NULL, NULL);
+                        $$ = criaOperador(noIndice, yylineno, id, $3, NULL, NULL);
                     }
+                | IDENTIFICADOR     { $$ = criaOperador(noId, yylineno, NULL, NULL, NULL, $1); }
     ;
 
 OrExpr      : OrExpr OU AndExpr   { $$ = criaOperador(noOU, yylineno, $1, $3, NULL, NULL); }
@@ -158,10 +222,28 @@ UnExpr      : '-' PrimExpr  { $$ = criaOperador(noMenosUnario, yylineno, $2, NUL
                 | PrimExpr  { $$ = $1; }
     ;
 
-PrimExpr    : IDENTIFICADOR    { $$ = criaOperador(noId, yylineno, NULL, NULL, NULL, $1); }
+PrimExpr    : IDENTIFICADOR '(' ListExpr ')'   { $$ = criaOperador(noChamada, yylineno, $3, NULL, NULL, $1); }
+                | IDENTIFICADOR '(' ')'     { $$ = criaOperador(noChamada, yylineno, NULL, NULL, NULL, $1); }
+                | IDENTIFICADOR '[' Expr ']'
+                    {
+                        Toperador *id = criaOperador(noId, yylineno, NULL, NULL, NULL, $1);
+                        $$ = criaOperador(noIndice, yylineno, id, $3, NULL, NULL);
+                    }
+                | IDENTIFICADOR    { $$ = criaOperador(noId, yylineno, NULL, NULL, NULL, $1); }
                 | CARCONST     { $$ = criaOperador(noCarConst, yylineno, NULL, NULL, NULL, $1); }
                 | INTCONST     { $$ = criaOperador(noIntConst, yylineno, NULL, NULL, NULL, $1); }
                 | '(' Expr ')'  { $$ = $2; }
+    ;
+
+ListExpr    : Expr  { $$ = criaOperador(noLstExpr, yylineno, $1, NULL, NULL, NULL); }
+                | ListExpr ',' Expr
+                    {
+                        /* anexa ao fim da lista para manter a ordem dos argumentos */
+                        Toperador *fim = $1;
+                        while (fim->filho2) fim = fim->filho2;
+                        fim->filho2 = criaOperador(noLstExpr, yylineno, $3, NULL, NULL, NULL);
+                        $$ = $1;
+                    }
     ;
 %%
 /* Funções do usuário escritas em C */
@@ -230,6 +312,7 @@ Toperador * criaOperador(TespecieOperador tipoOperador, int linha, Toperador * f
     no->filho2 = filho2;
     no->filho3 = filho3;
     no->lexema = lexema;
+    no->numero = 0;
     return no;
 }
 
@@ -249,6 +332,33 @@ void obtemEspecieNoEnumLin(Toperador* no, char* nomeOperador)
     switch(no->tipoOperador) {
         case noProg:
             sprintf(nomeOperador, "principal | Lin: %d\n", no->linha);
+            break;
+        case noLstFunc:
+            sprintf(nomeOperador, "lstFunc\n");
+            break;
+        case noFuncao:
+            sprintf(nomeOperador, "funcao %s | Lin: %d\n", no->lexema, no->linha);
+            break;
+        case noLstParam:
+            sprintf(nomeOperador, "lstParam\n");
+            break;
+        case noParam:
+            sprintf(nomeOperador, "param %s%s | Lin: %d\n", no->lexema, no->numero ? "[]" : "", no->linha);
+            break;
+        case noIdVet:
+            sprintf(nomeOperador, "%s[%d] | Lin: %d\n", no->lexema, no->numero, no->linha);
+            break;
+        case noRetorne:
+            sprintf(nomeOperador, "retorne | Lin: %d\n", no->linha);
+            break;
+        case noIndice:
+            sprintf(nomeOperador, "indice | Lin: %d\n", no->linha);
+            break;
+        case noChamada:
+            sprintf(nomeOperador, "chamada %s | Lin: %d\n", no->lexema, no->linha);
+            break;
+        case noLstExpr:
+            sprintf(nomeOperador, "lstExpr\n");
             break;
         case noBloco:
             sprintf(nomeOperador, "bloco | Lin: %d\n", no->linha);
