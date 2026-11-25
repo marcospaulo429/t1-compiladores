@@ -44,7 +44,8 @@ static TipoDado extraiTipoAST(Toperador *noTipo) {
 }
 
 /* Aloca (na tabela de simbolos) as variaveis de uma lista de declaracao.
-   Um vetor de n elementos conta como n posicoes. Devolve o total de posicoes. */
+   Um vetor de n elementos conta como n+1 posicoes: o ponteiro (posicao p)
+   e os elementos (p+1 .. p+n). Devolve o total de posicoes. */
 static int alocaVariaveis(Toperador *noLstId, TipoDado tipo, int linha) {
     if (!noLstId) return 0;
 
@@ -57,7 +58,7 @@ static int alocaVariaveis(Toperador *noLstId, TipoDado tipo, int linha) {
         if (id->tipoOperador == noIdVet) {
             tipoVar = tipoVetorDe(tipo);
             tamanho = id->numero;
-            slots = tamanho;
+            slots = tamanho + 1;
         }
         inserirVariavel(pilhaCodegen, id->lexema, tipoVar, posicaoAtual + 1, tamanho, linha);
         posicaoAtual += slots;
@@ -116,13 +117,29 @@ static int deslocamento(Simbolo *s) {
     return -4 * s->posicao;
 }
 
-/* Coloca em $reg o endereco do elemento 0 do vetor s. Vetor declarado:
-   endereco da sua primeira posicao. Parametro vetor: o endereco recebido. */
+/* Coloca em $reg o endereco do elemento 0 do vetor s. Todo vetor e um
+   ponteiro (enunciado p.9): a posicao do simbolo guarda esse endereco
+   (vetor declarado: inicializado na alocacao; parametro: endereco recebido). */
 static void emiteBaseVetor(Simbolo *s, const char *reg) {
-    if (s->categoria == CAT_PARAM) {
-        fprintf(arqSaida, "    lw %s, %d($fp)    # endereco do vetor %s\n", reg, deslocamento(s), s->nome);
-    } else {
-        fprintf(arqSaida, "    addiu %s, %s, %d    # endereco do vetor %s\n", reg, registradorBase(s), deslocamento(s), s->nome);
+    fprintf(arqSaida, "    lw %s, %d(%s)    # endereco do vetor %s\n", reg, deslocamento(s), registradorBase(s), s->nome);
+}
+
+/* Depois de reservar o espaco de uma lista de declaracoes, faz o ponteiro de
+   cada vetor declarado (posicao p) apontar para o seu elemento 0 (posicao p+1). */
+static void inicializaVetores(Toperador *noLstDecl) {
+    for (; noLstDecl; noLstDecl = noLstDecl->filho2) {
+        Toperador *decl = noLstDecl->filho1;
+        if (!decl || decl->tipoOperador != noDeclVar) continue;
+        for (Toperador *l = decl->filho1; l; l = l->filho2) {
+            Toperador *id = l->filho1;
+            if (!id || id->tipoOperador != noIdVet) continue;
+            Simbolo *s = pesquisarNoEscopoAtual(pilhaCodegen, id->lexema);
+            if (!s) continue;
+            const char *base = registradorBase(s);
+            int desloc = deslocamento(s);
+            fprintf(arqSaida, "    addiu $t1, %s, %d    # elemento 0 de %s\n", base, desloc - 4, s->nome);
+            fprintf(arqSaida, "    sw $t1, %d(%s)    # ponteiro do vetor %s\n", desloc, base, s->nome);
+        }
     }
 }
 
@@ -202,15 +219,20 @@ static void cgenExpr(Toperador *expr) {
             fprintf(arqSaida, "    li $s0, %s\n", expr->lexema);
             break;
 
-        case noCarConst:
-            if (strcmp(expr->lexema, "'\\n'") == 0) {
-                fprintf(arqSaida, "    li $s0, 10\n");
-            } else if (strcmp(expr->lexema, "'\\t'") == 0) {
-                fprintf(arqSaida, "    li $s0, 9\n");
-            } else {
-                fprintf(arqSaida, "    li $s0, %d\n", (int)expr->lexema[1]);
+        case noCarConst: {
+            /* lexema inclui os apostrofos: 'a' ou '\x' */
+            int valor = (unsigned char) expr->lexema[1];
+            if (expr->lexema[1] == '\\') {
+                switch (expr->lexema[2]) {
+                    case 'n': valor = 10; break;
+                    case 't': valor = 9;  break;
+                    case '0': valor = 0;  break;
+                    default:  valor = (unsigned char) expr->lexema[2]; break; /* \' \" \\ */
+                }
             }
+            fprintf(arqSaida, "    li $s0, %d\n", valor);
             break;
+        }
 
         case noId: {
             Simbolo *s = pesquisarNome(pilhaCodegen, expr->lexema);
@@ -270,8 +292,16 @@ static void cgenExpr(Toperador *expr) {
                 case noMenos:      fprintf(arqSaida, "    sub $s0, $t1, $s0\n"); break;
                 case noMult:       fprintf(arqSaida, "    mul $s0, $t1, $s0\n"); break;
                 case noDiv:        fprintf(arqSaida, "    div $s0, $t1, $s0\n"); break;
-                case noOU:         fprintf(arqSaida, "    or $s0, $t1, $s0\n"); break;
-                case noE:          fprintf(arqSaida, "    and $s0, $t1, $s0\n"); break;
+                /* E/OU logicos: valor diferente de zero e verdadeiro; resultado 0 ou 1 */
+                case noOU:
+                    fprintf(arqSaida, "    or $s0, $t1, $s0\n");
+                    fprintf(arqSaida, "    sne $s0, $s0, $zero\n");
+                    break;
+                case noE:
+                    fprintf(arqSaida, "    sne $t1, $t1, $zero\n");
+                    fprintf(arqSaida, "    sne $s0, $s0, $zero\n");
+                    fprintf(arqSaida, "    and $s0, $t1, $s0\n");
+                    break;
                 case noIgual:      fprintf(arqSaida, "    seq $s0, $t1, $s0\n"); break;
                 case noDiferente:  fprintf(arqSaida, "    sne $s0, $t1, $s0\n"); break;
                 case noMenor:      fprintf(arqSaida, "    slt $s0, $t1, $s0\n"); break;
@@ -417,6 +447,7 @@ static void cgenBloco(Toperador *bloco, int reutilizaTabela) {
         if (bytesAlocados > 0) {
             fprintf(arqSaida, "    addiu $sp, $sp, -%d   # aloca variaveis do bloco\n", bytesAlocados);
         }
+        inicializaVetores(bloco->filho1->filho1);
     }
 
     cgenCmd(bloco->filho2);
@@ -508,6 +539,7 @@ void geraCodigoMIPS(Toperador *raiz, FILE *saida) {
         if (bytes > 0) {
             fprintf(arqSaida, "    addiu $sp, $sp, -%d   # aloca variaveis globais\n", bytes);
         }
+        inicializaVetores(raiz->filho1->filho1);
     }
 
     /* todas as funcoes ficam na tabela global antes de gerar qualquer codigo */

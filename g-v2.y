@@ -249,7 +249,7 @@ ListExpr    : Expr  { $$ = criaOperador(noLstExpr, yylineno, $1, NULL, NULL, NUL
 /* Funções do usuário escritas em C */
 void yyerror(const char *s)
 {
-    fprintf(stderr, "ERRO: %s linha %d\n", s, yylineno);
+    printf("ERRO: %s linha %d\n", s, yylineno);
 }
 
 

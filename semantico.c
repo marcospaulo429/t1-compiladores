@@ -12,7 +12,7 @@ static Simbolo * funcaoAtual = NULL;
 static int posicaoAtual = 0;
 
 static void erroSemantico(const char *mensagem, int linha) {
-    fprintf(stderr, "ERRO: %s linha %d\n", mensagem, linha);
+    printf("ERRO: %s linha %d\n", mensagem, linha);
     destruirPilha(pilhaSemantica);
     exit(1);
 }
@@ -41,7 +41,7 @@ static void declaraIdentificadores(Toperador * noLstId, TipoDado tipo, int linha
             }
             tipoVar = tipoVetorDe(tipo);
             tamanho = id->numero;
-            slots = tamanho;   /* vetor de n elementos ocupa n posicoes */
+            slots = tamanho + 1;   /* ponteiro (posicao p) + n elementos */
         }
 
         if (!inserirVariavel(pilhaSemantica, id->lexema, tipoVar, posicaoAtual + 1, tamanho, linha)) {
@@ -169,16 +169,10 @@ static TipoDado checarExpressao(Toperador * expr) {
             TipoDado tipoEsq = checarLValue(lv);
             TipoDado tipoDir = checarExpressao(expr->filho2);
 
+            /* vetor = vetor copia o endereco e so exige o mesmo tipo basico (p.9),
+               o que esta comparacao ja garante */
             if (tipoEsq != tipoDir) {
                 erroSemantico("tipos incompatíveis na atribuição", expr->linha);
-            }
-            if (ehVetor(tipoEsq)) {
-                /* atribuicao de vetor copia o endereco: so e possivel em
-                   variaveis que sao ponteiros, isto e, parametros vetor */
-                Simbolo * s = buscaVariavel(lv);
-                if (s->categoria != CAT_PARAM) {
-                    erroSemantico("vetor declarado não pode receber o endereço de outro vetor", expr->linha);
-                }
             }
             return tipoEsq;
         }
