@@ -10,7 +10,7 @@ Repositório: <https://github.com/marcospaulo429/t1-compiladores/tree/entrega_t2
 Compilador para a linguagem G-V2 feito em C com Flex e Bison. G-V2 estende a G-V1 do
 trabalho 1 com **variáveis globais**, **funções** e o tipo **vetor** (de `int` e de `car`).
 O compilador lê um programa `.g`, faz as análises léxica, sintática e semântica e, se não
-houver erro, gera código assembly MIPS (SPIM/MARS). O enunciado está em `docs/trabalho2.pdf`.
+houver erro, gera código assembly MIPS (SPIM/MARS).
 
 ## Organização
 
@@ -86,5 +86,5 @@ endereço de `x` para `y` e só exige que os dois tenham o mesmo tipo básico.
   `+5` não é aceito, pois a gramática não tem `+` unário.
 - Os testes `.txt` em `test/` (fornecidos junto ao enunciado) não são rodados pelo `make test`.
   Alguns dos que estão em `Corretos/` têm erro semântico real (ex.: `i` não declarado, vetor `car`
-  passado para `int[]`), e o compilador acusa esse primeiro erro. Ver `docs/revisao_trabalho2.md`.
+  passado para `int[]`), e o compilador acusa esse primeiro erro.
 - Divisão por zero não é verificada.
